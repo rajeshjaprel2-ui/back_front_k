@@ -68,8 +68,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "college_events.wsgi.application"
 
+MONGODB_URI = os.environ.get("MONGODB_URI") or "mongodb://MONGODB_URI-is-not-set:27017"
+
 DATABASES = {
-    "default": django_mongodb_backend.parse_uri(os.environ["MONGODB_URI"], db_name="college_events"),
+    "default": django_mongodb_backend.parse_uri(
+        MONGODB_URI,
+        db_name="college_events",
+        options={"serverSelectionTimeoutMS": 5000},
+    ),
 }
 
 AUTH_PASSWORD_VALIDATORS = [
