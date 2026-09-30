@@ -4,9 +4,13 @@
 <div class="page-header">
   <div>
     <h1>Event reports</h1>
-    <p>Participation insights across all categories and events.</p>
+    <p>Live participation insights across all categories and events.</p>
   </div>
-  <div class="actions">
+  <div class="actions align-items-center no-print">
+    <span class="live-badge" id="liveBadge" title="Data refreshes automatically">
+      <span class="live-dot"></span><span id="liveText">Live</span>
+    </span>
+    <button type="button" class="btn btn-outline" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
     <button type="button" class="btn btn-outline" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
   </div>
 </div>
@@ -14,29 +18,70 @@
 <div class="row g-3 mb-4">
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div><div class="label">Total events</div><div class="value">{{ total_events }}</div></div>
+      <div>
+        <div class="label">Total events</div>
+        <div class="value" data-kpi="events">–</div>
+        <div class="hint" data-kpi-hint="events"></div>
+      </div>
       <span class="stat-icon tint-blue"><i class="bi bi-calendar2-event"></i></span>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div><div class="label">Students</div><div class="value">{{ total_students }}</div></div>
+      <div>
+        <div class="label">Students</div>
+        <div class="value" data-kpi="students">–</div>
+        <div class="hint" data-kpi-hint="students"></div>
+      </div>
       <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <div><div class="label">Registrations</div><div class="value">{{ total_registrations }}</div></div>
+      <div>
+        <div class="label">Registrations</div>
+        <div class="value" data-kpi="registrations">–</div>
+        <div class="hint" data-kpi-hint="registrations"></div>
+      </div>
       <span class="stat-icon tint-green"><i class="bi bi-ticket-perforated"></i></span>
     </div>
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
       <div>
-        <div class="label">Upcoming · Completed</div>
-        <div class="value">{{ upcoming }} <span class="text-muted fw-semibold fs-5">/ {{ completed }}</span></div>
+        <div class="label">Seat fill rate</div>
+        <div class="value" data-kpi="fill_rate">–</div>
+        <div class="hint" data-kpi-hint="fill_rate"></div>
       </div>
-      <span class="stat-icon tint-amber"><i class="bi bi-flag"></i></span>
+      <span class="stat-icon tint-amber"><i class="bi bi-pie-chart"></i></span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card-x h-100">
+      <div class="card-x-header">
+        <div><h3>Registration trend</h3><p id="trendSummary">Daily registrations and running total</p></div>
+        <div class="btn-group btn-group-sm seg no-print" role="group" aria-label="Trend range" id="rangeGroup">
+          <button type="button" class="btn" data-range="7">7D</button>
+          <button type="button" class="btn" data-range="30">30D</button>
+          <button type="button" class="btn" data-range="90">90D</button>
+          <button type="button" class="btn" data-range="0">All</button>
+        </div>
+      </div>
+      <div class="card-x-body"><div class="chart-box chart-lg"><canvas id="trendChart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card-x h-100">
+      <div class="card-x-header"><div><h3>Events by status</h3><p>Current lifecycle of all events</p></div></div>
+      <div class="card-x-body">
+        <div class="chart-box chart-lg position-relative">
+          <canvas id="statusChart"></canvas>
+          <div class="donut-center"><strong data-kpi="events">–</strong><span>events</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -44,90 +89,411 @@
 <div class="row g-4 mb-4">
   <div class="col-lg-6">
     <div class="card-x h-100">
-      <div class="card-x-header"><div><h3>Events by category</h3><p>Share of events and registrations per category</p></div></div>
-      <div class="card-x-body">
-        <div class="breakdown">
-          {% for row in by_category %}
-            <div class="breakdown-row cat-{{ row.key }}">
-              <div class="top">
-                <span class="name"><span class="dot"></span>{{ row.label }}</span>
-                <span class="val"><strong>{{ row.total }}</strong> event{{ row.total|pluralize }} · {{ row.regs }} reg.</span>
-              </div>
-              <div class="bar"><span style="width: {% widthratio row.total total_events 100 %}%"></span></div>
-            </div>
-          {% empty %}
-            <p class="text-muted mb-0">No data yet.</p>
-          {% endfor %}
-        </div>
-      </div>
+      <div class="card-x-header"><div><h3>Events by category</h3><p>Number of events and registrations per category</p></div></div>
+      <div class="card-x-body"><div class="chart-box"><canvas id="categoryChart"></canvas></div></div>
     </div>
   </div>
-
   <div class="col-lg-6">
     <div class="card-x h-100">
-      <div class="card-x-header"><div><h3>Most popular events</h3><p>Ranked by number of participants</p></div></div>
-      <ul class="list-x">
-        {% for e in top_events %}
-          <li>
-            <span class="rank rank-{{ forloop.counter }}">{{ forloop.counter }}</span>
-            <div class="grow">
-              <a href="{% url 'event_detail' e.pk %}" class="title">{{ e.title }}</a>
-              <div class="mini-bar mt-1">
-                <div class="bar"><span style="width: {% widthratio e.reg_count e.max_participants 100 %}%"></span></div>
-                <small>{{ e.reg_count }}/{{ e.max_participants }}</small>
-              </div>
-            </div>
-          </li>
-        {% empty %}
-          <li class="justify-content-center text-muted py-4">No data yet.</li>
-        {% endfor %}
-      </ul>
-      {% if by_status %}
-        <div class="card-x-body border-top d-flex flex-wrap gap-2">
-          {% for row in by_status %}
-            <span class="status-pill badge-{{ row.key }}">{{ row.label }} · {{ row.total }}</span>
-          {% endfor %}
+      <div class="card-x-header"><div><h3>Most popular events</h3><p>Top events ranked by number of registrations</p></div></div>
+      <div class="card-x-body"><div class="chart-box"><canvas id="topChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card-x h-100">
+      <div class="card-x-header"><div><h3>Participation by department</h3><p>Registrations grouped by student department</p></div></div>
+      <div class="card-x-body"><div class="chart-box"><canvas id="deptChart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card-x h-100">
+      <div class="card-x-header"><div><h3>Solo vs team</h3><p>How students are registering</p></div></div>
+      <div class="card-x-body">
+        <div class="chart-box position-relative">
+          <canvas id="typeChart"></canvas>
+          <div class="donut-center"><strong data-kpi="registrations">–</strong><span>registrations</span></div>
         </div>
-      {% endif %}
+      </div>
     </div>
   </div>
 </div>
 
 <div class="card-x" id="all-events">
-  <div class="card-x-header">
-    <div><h3>All events</h3><p>Full report with capacity and participant lists</p></div>
+  <div class="card-x-header flex-wrap">
+    <div><h3>All events</h3><p id="tableSummary">Full report with capacity and participant lists</p></div>
+    <div class="report-toolbar no-print">
+      <div class="input-icon">
+        <i class="bi bi-search"></i>
+        <input type="search" class="form-control form-control-sm" id="tableSearch" placeholder="Search event or venue">
+      </div>
+      <select class="form-select form-select-sm" id="tableCategory" aria-label="Filter by category">
+        <option value="">All categories</option>
+      </select>
+      <select class="form-select form-select-sm" id="tableStatus" aria-label="Filter by status">
+        <option value="">All statuses</option>
+      </select>
+      <button type="button" class="btn btn-sm btn-outline" id="exportCsv" title="Download this table as CSV"><i class="bi bi-filetype-csv"></i> Export</button>
+    </div>
   </div>
   <div class="table-responsive">
-    <table class="table table-x">
+    <table class="table table-x report-table">
       <thead>
-        <tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th>Occupancy</th><th class="text-end">Participants</th></tr>
-      </thead>
-      <tbody>
-        {% for e in events %}
         <tr>
-          <td>
-            <a href="{% url 'event_detail' e.pk %}" class="cell-title">{{ e.title }}</a>
-            <div class="small text-muted">{{ e.get_category_display }}</div>
-          </td>
-          <td class="text-nowrap">{{ e.date|date:"d M Y" }}</td>
-          <td>{{ e.venue }}</td>
-          <td><span class="status-pill badge-{{ e.status }}">{{ e.get_status_display }}</span></td>
-          <td>
-            <div class="mini-bar">
-              <div class="bar"><span style="width: {% widthratio e.reg_count e.max_participants 100 %}%"></span></div>
-              <small>{{ e.reg_count }}/{{ e.max_participants }}</small>
-            </div>
-          </td>
-          <td class="text-end text-nowrap">
-            <a href="{% url 'participants' e.pk %}" class="btn btn-sm btn-light-soft"><i class="bi bi-people"></i> View</a>
-            <a href="{% url 'export_participants' e.pk %}" class="btn btn-sm btn-outline" title="Export CSV"><i class="bi bi-download"></i></a>
-          </td>
+          <th data-sort="title">Event</th>
+          <th data-sort="date">Date</th>
+          <th data-sort="venue">Venue</th>
+          <th data-sort="status">Status</th>
+          <th data-sort="regs" class="text-end">Registered</th>
+          <th data-sort="capacity" class="text-end">Capacity</th>
+          <th data-sort="fill">Occupancy</th>
+          <th class="text-end no-print">Participants</th>
         </tr>
-        {% empty %}
-        <tr><td colspan="6" class="text-center text-muted py-4">No events yet.</td></tr>
-        {% endfor %}
-      </tbody>
+      </thead>
+      <tbody id="eventRows"></tbody>
+      <tfoot id="eventTotals"></tfoot>
     </table>
   </div>
 </div>
+
+{{ report|json_script:"report-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const DATA_URL = "{% url 'reports_data' %}";
+  const POLL_MS = 15000;
+  const CATEGORY_COLORS = {
+    seminar: "#6366f1", workshop: "#14b8a6", sports: "#f97316",
+    cultural: "#ec4899", technical: "#38bdf8", other: "#64748b",
+  };
+  const STATUS_COLORS = { upcoming: "#0ea5e9", ongoing: "#16a34a", completed: "#94a3b8", cancelled: "#ef4444" };
+  const DEPT_COLORS = ["#0ea5e9", "#6366f1", "#14b8a6", "#f97316", "#ec4899", "#eab308", "#8b5cf6", "#64748b"];
+
+  let report = JSON.parse(document.getElementById("report-data").textContent);
+  let range = null;
+  let sort = { key: "date", dir: -1 };
+
+  Chart.defaults.font.family = "'Plus Jakarta Sans', system-ui, sans-serif";
+  Chart.defaults.color = "#5f7a8f";
+  Chart.defaults.borderColor = "#e0eef7";
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.backgroundColor = "#0c2a3f";
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+  Chart.defaults.maintainAspectRatio = false;
+
+  const intAxis = { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#eef5fa" } };
+  const noGrid = { grid: { display: false } };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtDate = (iso, opts) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", opts || { day: "2-digit", month: "short", year: "numeric" });
+  const truncate = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+  const trendCtx = document.getElementById("trendChart").getContext("2d");
+  const trendFill = trendCtx.createLinearGradient(0, 0, 0, 280);
+  trendFill.addColorStop(0, "rgba(99,102,241,0.18)");
+  trendFill.addColorStop(1, "rgba(99,102,241,0)");
+
+  const charts = {
+    trend: new Chart(trendCtx, {
+      data: { labels: [], datasets: [
+        { type: "bar", label: "New registrations", data: [], backgroundColor: "#0ea5e9", borderRadius: 4, maxBarThickness: 22, yAxisID: "y", order: 2 },
+        {
+          type: "line", label: "Running total", data: [], borderColor: "#6366f1", backgroundColor: trendFill,
+          fill: true, stepped: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, yAxisID: "y1", order: 1,
+        },
+      ] },
+      options: {
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { position: "top", align: "end" } },
+        scales: {
+          y: { ...intAxis, title: { display: true, text: "Per day" } },
+          y1: { beginAtZero: true, position: "right", ticks: { precision: 0 }, grid: { display: false }, title: { display: true, text: "Total" } },
+          x: { ...noGrid, ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+        },
+      },
+    }),
+    status: new Chart(document.getElementById("statusChart"), {
+      type: "doughnut",
+      data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 3, borderColor: "#fff", hoverOffset: 6 }] },
+      options: { cutout: "70%", plugins: { legend: { position: "bottom" } } },
+    }),
+    category: new Chart(document.getElementById("categoryChart"), {
+      type: "bar",
+      data: { labels: [], datasets: [
+        { label: "Events", data: [], backgroundColor: [], borderRadius: 6, maxBarThickness: 28 },
+        { label: "Registrations", data: [], backgroundColor: "rgba(14,165,233,0.25)", borderColor: "#0ea5e9", borderWidth: 1.5, borderRadius: 6, maxBarThickness: 28 },
+      ] },
+      options: { plugins: { legend: { position: "top", align: "end" } }, scales: { y: intAxis, x: noGrid } },
+    }),
+    top: new Chart(document.getElementById("topChart"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Registered", data: [], backgroundColor: [], borderRadius: 6, maxBarThickness: 22 }] },
+      options: {
+        indexAxis: "y",
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            title: (items) => report.__top[items[0].dataIndex]?.title || "",
+            label: (item) => {
+              const e = report.__top[item.dataIndex];
+              return ` ${e.regs} of ${e.capacity} seats filled (${e.fill}%)`;
+            },
+          } },
+        },
+        scales: { x: intAxis, y: noGrid },
+      },
+    }),
+    dept: new Chart(document.getElementById("deptChart"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Registrations", data: [], backgroundColor: [], borderRadius: 6, maxBarThickness: 40 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: intAxis, x: noGrid } },
+    }),
+    type: new Chart(document.getElementById("typeChart"), {
+      type: "doughnut",
+      data: { labels: [], datasets: [{ data: [], backgroundColor: ["#0ea5e9", "#f97316"], borderWidth: 3, borderColor: "#fff", hoverOffset: 6 }] },
+      options: { cutout: "70%", plugins: { legend: { position: "bottom" } } },
+    }),
+  };
+
+  function setKpi(key, value) {
+    document.querySelectorAll(`[data-kpi="${key}"]`).forEach((el) => {
+      const text = String(value);
+      if (el.textContent !== text && el.textContent !== "–") {
+        el.classList.remove("kpi-flash");
+        void el.offsetWidth;
+        el.classList.add("kpi-flash");
+      }
+      el.textContent = text;
+    });
+  }
+  const setHint = (key, html) => { document.querySelector(`[data-kpi-hint="${key}"]`).innerHTML = html; };
+
+  function renderKpis() {
+    const t = report.totals;
+    setKpi("events", t.events);
+    setKpi("students", t.students);
+    setKpi("registrations", t.registrations);
+    setKpi("fill_rate", t.fill_rate + "%");
+    setHint("events", `${t.upcoming || 0} upcoming · ${t.ongoing || 0} ongoing · ${t.completed || 0} completed`);
+    setHint("students", `${t.active_students} registered for at least one event`);
+    const team = (report.by_type.find((r) => r.key === "team") || {}).total || 0;
+    setHint("registrations", `${t.registrations - team} solo · ${team} team`);
+    setHint("fill_rate", `${t.registrations} of ${t.capacity} seats taken`);
+  }
+
+  function setRange(value) {
+    range = value;
+    document.querySelectorAll("#rangeGroup .btn").forEach((b) => b.classList.toggle("active", Number(b.dataset.range) === value));
+  }
+
+  function renderTrend() {
+    const all = report.timeline;
+    if (range === null) {
+      const recent = all.slice(-30).reduce((s, r) => s + r.count, 0);
+      setRange(recent ? 30 : 0);
+    }
+    let running = 0;
+    const cumulative = all.map((r) => (running += r.count));
+    const from = range ? Math.max(all.length - range, 0) : Math.max(all.findIndex((r) => r.count) - 3, 0);
+    const rows = all.slice(from);
+    charts.trend.data.labels = rows.map((r) => fmtDate(r.date, { day: "2-digit", month: "short" }));
+    charts.trend.data.datasets[0].data = rows.map((r) => r.count);
+    charts.trend.data.datasets[1].data = cumulative.slice(from);
+    charts.trend.update();
+
+    const inRange = rows.reduce((s, r) => s + r.count, 0);
+    const peak = rows.reduce((best, r) => (r.count > best.count ? r : best), { count: 0 });
+    document.getElementById("trendSummary").textContent = inRange
+      ? `${inRange} registration${inRange === 1 ? "" : "s"} in this period · busiest day ${fmtDate(peak.date, { day: "2-digit", month: "short" })} (${peak.count})`
+      : "No registrations in this period";
+  }
+
+  function renderCharts() {
+    renderTrend();
+
+    const st = report.by_status;
+    charts.status.data.labels = st.map((r) => r.label);
+    charts.status.data.datasets[0].data = st.map((r) => r.total);
+    charts.status.data.datasets[0].backgroundColor = st.map((r) => STATUS_COLORS[r.key] || "#94a3b8");
+    charts.status.update();
+
+    const cat = report.by_category;
+    charts.category.data.labels = cat.map((r) => r.label);
+    charts.category.data.datasets[0].data = cat.map((r) => r.events);
+    charts.category.data.datasets[0].backgroundColor = cat.map((r) => CATEGORY_COLORS[r.key] || "#64748b");
+    charts.category.data.datasets[1].data = cat.map((r) => r.regs);
+    charts.category.update();
+
+    report.__top = [...report.events].sort((a, b) => b.regs - a.regs || b.fill - a.fill).slice(0, 7);
+    charts.top.data.labels = report.__top.map((e) => truncate(e.title, 26));
+    charts.top.data.datasets[0].data = report.__top.map((e) => e.regs);
+    charts.top.data.datasets[0].backgroundColor = report.__top.map((e) => CATEGORY_COLORS[e.category] || "#0ea5e9");
+    charts.top.update();
+
+    const dept = report.by_department;
+    charts.dept.data.labels = dept.map((r) => r.label);
+    charts.dept.data.datasets[0].data = dept.map((r) => r.regs);
+    charts.dept.data.datasets[0].backgroundColor = dept.map((_, i) => DEPT_COLORS[i % DEPT_COLORS.length]);
+    charts.dept.update();
+
+    charts.type.data.labels = report.by_type.map((r) => r.label);
+    charts.type.data.datasets[0].data = report.by_type.map((r) => r.total);
+    charts.type.update();
+  }
+
+  const searchEl = document.getElementById("tableSearch");
+  const catEl = document.getElementById("tableCategory");
+  const statusEl = document.getElementById("tableStatus");
+
+  function syncFilterOptions() {
+    const fill = (el, rows, label) => {
+      const current = el.value;
+      const first = el.options[0].outerHTML;
+      el.innerHTML = first + rows.map((r) => `<option value="${esc(r.key)}">${esc(r[label])}</option>`).join("");
+      el.value = rows.some((r) => r.key === current) ? current : "";
+    };
+    fill(catEl, report.by_category, "label");
+    fill(statusEl, report.by_status, "label");
+  }
+
+  function filteredEvents() {
+    const q = searchEl.value.trim().toLowerCase();
+    return report.events
+      .filter((e) => !catEl.value || e.category === catEl.value)
+      .filter((e) => !statusEl.value || e.status === statusEl.value)
+      .filter((e) => !q || e.title.toLowerCase().includes(q) || e.venue.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const x = a[sort.key], y = b[sort.key];
+        return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sort.dir;
+      });
+  }
+
+  function renderTable() {
+    const rows = filteredEvents();
+    const body = document.getElementById("eventRows");
+    body.innerHTML = rows.length ? rows.map((e) => {
+      const barCls = e.fill >= 100 ? "full" : e.fill >= 80 ? "warn" : "";
+      return `<tr>
+        <td>
+          <a href="${e.detail_url}" class="cell-title">${esc(e.title)}</a>
+          <div class="small"><span class="cat-dot" style="background:${CATEGORY_COLORS[e.category] || "#64748b"}"></span>${esc(e.category_label)}</div>
+        </td>
+        <td class="text-nowrap">${fmtDate(e.date)}<div class="small text-muted">${esc(e.time)}</div></td>
+        <td>${esc(e.venue)}</td>
+        <td><span class="status-pill badge-${esc(e.status)}">${esc(e.status_label)}</span></td>
+        <td class="text-end fw-semibold">${e.regs}</td>
+        <td class="text-end">${e.capacity}</td>
+        <td>
+          <div class="mini-bar">
+            <div class="bar ${barCls}"><span style="width:${Math.min(e.fill, 100)}%"></span></div>
+            <small>${e.fill}%</small>
+          </div>
+        </td>
+        <td class="text-end text-nowrap no-print">
+          <a href="${e.participants_url}" class="btn btn-sm btn-light-soft"><i class="bi bi-people"></i> View</a>
+          <a href="${e.export_url}" class="btn btn-sm btn-outline" title="Export participants CSV"><i class="bi bi-download"></i></a>
+        </td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="8" class="text-center text-muted py-5"><i class="bi bi-inbox fs-3 d-block mb-1"></i>No events match these filters.</td></tr>`;
+
+    const regs = rows.reduce((s, e) => s + e.regs, 0);
+    const cap = rows.reduce((s, e) => s + e.capacity, 0);
+    document.getElementById("eventTotals").innerHTML = rows.length ? `<tr>
+      <td colspan="4">Total · ${rows.length} event${rows.length === 1 ? "" : "s"}</td>
+      <td class="text-end">${regs}</td>
+      <td class="text-end">${cap}</td>
+      <td>${cap ? Math.round((regs * 1000) / cap) / 10 : 0}%</td>
+      <td class="no-print"></td>
+    </tr>` : "";
+    document.getElementById("tableSummary").textContent =
+      `Showing ${rows.length} of ${report.events.length} events · capacity and participant lists`;
+
+    document.querySelectorAll(".report-table th[data-sort]").forEach((th) => {
+      th.classList.toggle("sorted", th.dataset.sort === sort.key);
+      th.dataset.dir = th.dataset.sort === sort.key ? (sort.dir === 1 ? "asc" : "desc") : "";
+    });
+  }
+
+  function exportCsv() {
+    const header = ["Event", "Category", "Date", "Time", "Venue", "Status", "Registered", "Capacity", "Occupancy %"];
+    const lines = filteredEvents().map((e) =>
+      [e.title, e.category_label, e.date, e.time, e.venue, e.status_label, e.regs, e.capacity, e.fill]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
+    const a = Object.assign(document.createElement("a"), {
+      href: URL.createObjectURL(blob),
+      download: `event-report-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  const liveBadge = document.getElementById("liveBadge");
+  const liveText = document.getElementById("liveText");
+  function setLive(ok) {
+    liveBadge.classList.toggle("offline", !ok);
+    const at = new Date(report.generated_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    liveText.textContent = ok ? `Live · updated ${at}` : `Offline · last ${at}`;
+  }
+
+  function renderAll() {
+    renderKpis();
+    renderCharts();
+    syncFilterOptions();
+    renderTable();
+  }
+
+  const refreshBtn = document.getElementById("refreshBtn");
+  async function refresh() {
+    refreshBtn.classList.add("spinning");
+    try {
+      const res = await fetch(DATA_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!res.ok || !res.headers.get("content-type")?.includes("json")) throw new Error(res.status);
+      report = await res.json();
+      renderAll();
+      setLive(true);
+    } catch (err) {
+      setLive(false);
+    } finally {
+      refreshBtn.classList.remove("spinning");
+    }
+  }
+
+  document.getElementById("rangeGroup").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-range]");
+    if (!btn) return;
+    setRange(Number(btn.dataset.range));
+    renderTrend();
+  });
+  document.querySelectorAll(".report-table th[data-sort]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      sort = { key, dir: sort.key === key ? -sort.dir : (["title", "venue", "status"].includes(key) ? 1 : -1) };
+      renderTable();
+    });
+  });
+  [searchEl, catEl, statusEl].forEach((el) => el.addEventListener("input", renderTable));
+  document.getElementById("exportCsv").addEventListener("click", exportCsv);
+  refreshBtn.addEventListener("click", refresh);
+
+  let timer = setInterval(refresh, POLL_MS);
+  document.addEventListener("visibilitychange", () => {
+    clearInterval(timer);
+    if (!document.hidden) {
+      refresh();
+      timer = setInterval(refresh, POLL_MS);
+    }
+  });
+
+  renderAll();
+  setLive(true);
+})();
+</script>
 {% endblock %}

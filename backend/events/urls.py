@@ -35,5 +35,6 @@ urlpatterns = [
     path("registrations/<objectid:pk>/remove/", views.participant_remove, name="participant_remove"),
     path("my-registrations/", views.my_registrations, name="my_registrations"),
     path("reports/", views.reports, name="reports"),
+    path("reports/data/", views.reports_data, name="reports_data"),
     path("students/", views.student_list, name="student_list"),
 ]

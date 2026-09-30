@@ -1,11 +1,14 @@
 import csv
+from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .emails import send_registration_confirmation
@@ -321,45 +324,97 @@ def participant_remove(request, pk):
     return redirect("participants", pk=event_id)
 
 
-@admin_required
-def reports(request):
-    events = Event.objects.annotate(reg_count=Count("registrations"))
+REPORT_TIMELINE_DAYS = 90
+
+
+def _report_payload():
+    events = list(Event.objects.annotate(reg_count=Count("registrations")))
+    registrations = list(Registration.objects.values_list("student_id", "registered_at", "participation_type"))
+    departments = dict(StudentProfile.objects.values_list("user_id", "department"))
     category_labels = dict(Event.CATEGORY_CHOICES)
     status_labels = dict(Event.STATUS_CHOICES)
-    by_category = [
-        {
-            "key": row["category"],
-            "label": category_labels.get(row["category"], row["category"]),
-            "total": row["total"],
-            "regs": row["regs"],
-        }
-        for row in (
-            Event.objects.values("category")
-            .annotate(total=Count("id"), regs=Count("registrations"))
-            .order_by("-total")
+    department_labels = dict(StudentProfile.DEPARTMENT_CHOICES)
+
+    by_category = {key: {"key": key, "label": label, "events": 0, "regs": 0} for key, label in Event.CATEGORY_CHOICES}
+    by_status = {key: {"key": key, "label": label, "total": 0} for key, label in Event.STATUS_CHOICES}
+    total_capacity = 0
+    event_rows = []
+    for e in events:
+        by_category.setdefault(e.category, {"key": e.category, "label": e.category, "events": 0, "regs": 0})
+        by_category[e.category]["events"] += 1
+        by_category[e.category]["regs"] += e.reg_count
+        by_status.setdefault(e.status, {"key": e.status, "label": e.status, "total": 0})
+        by_status[e.status]["total"] += 1
+        total_capacity += e.max_participants
+        event_rows.append(
+            {
+                "id": str(e.pk),
+                "title": e.title,
+                "category": e.category,
+                "category_label": category_labels.get(e.category, e.category),
+                "date": e.date.isoformat(),
+                "time": e.time.strftime("%H:%M") if e.time else "",
+                "venue": e.venue,
+                "status": e.status,
+                "status_label": status_labels.get(e.status, e.status),
+                "regs": e.reg_count,
+                "capacity": e.max_participants,
+                "fill": round(e.reg_count * 100 / e.max_participants, 1) if e.max_participants else 0,
+                "detail_url": reverse("event_detail", args=[e.pk]),
+                "participants_url": reverse("participants", args=[e.pk]),
+                "export_url": reverse("export_participants", args=[e.pk]),
+            }
         )
-    ]
-    by_status = [
-        {
-            "key": row["status"],
-            "label": status_labels.get(row["status"], row["status"]),
-            "total": row["total"],
-        }
-        for row in Event.objects.values("status").annotate(total=Count("id")).order_by("-total")
-    ]
-    top_events = events.order_by("-reg_count")[:5]
-    context = {
-        "total_events": Event.objects.count(),
-        "total_students": StudentProfile.objects.count(),
-        "total_registrations": Registration.objects.count(),
-        "upcoming": Event.objects.filter(status="upcoming").count(),
-        "completed": Event.objects.filter(status="completed").count(),
-        "by_category": by_category,
-        "by_status": by_status,
-        "top_events": top_events,
-        "events": events,
+
+    def local_day(dt):
+        return (timezone.localtime(dt) if timezone.is_aware(dt) else dt).date()
+
+    today = timezone.localdate()
+    reg_days = [local_day(r[1]) for r in registrations if r[1]]
+    start = min([today - timedelta(days=REPORT_TIMELINE_DAYS - 1), *reg_days])
+    per_day = {start + timedelta(days=i): 0 for i in range((today - start).days + 1)}
+    for day in reg_days:
+        if day in per_day:
+            per_day[day] += 1
+    by_department = {}
+    by_type = {"solo": 0, "team": 0}
+    for student_id, registered_at, participation_type in registrations:
+        dept = departments.get(student_id, "Other")
+        by_department[dept] = by_department.get(dept, 0) + 1
+        by_type[participation_type] = by_type.get(participation_type, 0) + 1
+
+    total_regs = len(registrations)
+    return {
+        "generated_at": timezone.localtime().isoformat(),
+        "totals": {
+            "events": len(events),
+            "students": len(departments),
+            "active_students": len({r[0] for r in registrations}),
+            "registrations": total_regs,
+            "capacity": total_capacity,
+            "fill_rate": round(total_regs * 100 / total_capacity, 1) if total_capacity else 0,
+            **{key: row["total"] for key, row in by_status.items()},
+        },
+        "by_category": [row for row in by_category.values() if row["events"]],
+        "by_status": [row for row in by_status.values() if row["total"]],
+        "by_department": sorted(
+            ({"label": department_labels.get(k, k), "regs": v} for k, v in by_department.items()),
+            key=lambda row: -row["regs"],
+        ),
+        "by_type": [{"key": k, "label": k.title(), "total": v} for k, v in by_type.items()],
+        "timeline": [{"date": d.isoformat(), "count": c} for d, c in per_day.items()],
+        "events": event_rows,
     }
-    return render(request, "events/reports.html", context)
+
+
+@admin_required
+def reports(request):
+    return render(request, "events/reports.html", {"report": _report_payload()})
+
+
+@admin_required
+def reports_data(request):
+    return JsonResponse(_report_payload())
 
 
 @admin_required
