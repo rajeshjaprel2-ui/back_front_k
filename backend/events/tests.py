@@ -1,6 +1,7 @@
 from datetime import time, timedelta
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -93,6 +94,19 @@ class EventEndTests(TestCase):
         self.assertFalse(Registration.objects.filter(event=self.past).exists())
         self.client.post(reverse("register_event", args=[self.future.pk]))
         self.assertTrue(Registration.objects.filter(event=self.future).exists())
+
+    def test_registration_sends_confirmation_email(self):
+        self.student.email = "stu@college.edu"
+        self.student.save()
+        self.client.login(username="stu", password="x")
+        self.client.post(reverse("register_event", args=[self.future.pk]))
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, ["stu@college.edu"])
+        self.assertIn("Future Talk", sent.subject)
+        self.assertIn(self.future.date.strftime("%d %B %Y"), sent.body)
+        self.assertIn("10:00 AM", sent.body)
+        self.assertIn("Location : v", sent.body)
 
     def test_detail_shows_event_has_ended(self):
         response = self.client.get(reverse("event_detail", args=[self.past.pk]))

@@ -99,6 +99,20 @@ MEDIA_ROOT = PROJECT_ROOT / "media"
 
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = 10
+# Without SMTP credentials, emails are printed to the terminal instead of being sent.
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
+    else "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "noreply@college.edu"
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"

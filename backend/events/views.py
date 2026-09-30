@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from .emails import send_registration_confirmation
 from .forms import EventForm, LoginForm, StudentRegisterForm
 from .models import TEAM_SPORTS, Event, Registration, StudentProfile
 
@@ -268,14 +269,19 @@ def register_event(request, pk):
             messages.error(request, f"A team can have at most {event.max_team_size} players.")
             return redirect("event_detail", pk=pk)
 
-    Registration.objects.create(
+    registration = Registration.objects.create(
         student=request.user,
         event=event,
         participation_type=kind,
         team_name=team_name,
         team_members="\n".join(members),
     )
-    messages.success(request, f'You are registered for "{event.title}".')
+    if send_registration_confirmation(registration):
+        messages.success(
+            request, f'You are registered for "{event.title}". A confirmation email has been sent to {request.user.email}.'
+        )
+    else:
+        messages.success(request, f'You are registered for "{event.title}".')
     return redirect("my_registrations")
 
 
