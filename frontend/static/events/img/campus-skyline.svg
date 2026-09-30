@@ -26,7 +26,7 @@
     </g>
   </g>
   <!-- windows & columns -->
-  <g fill="#0b1530" opacity="0.25">
+  <g fill="#0369a1" opacity="0.25">
     <circle cx="280" cy="20" r="11"/>
     <rect x="198" y="84" width="10" height="76"/><rect x="226" y="84" width="10" height="76"/>
     <rect x="254" y="84" width="10" height="76"/><rect x="296" y="84" width="10" height="76"/>
@@ -39,7 +39,7 @@
       <rect x="392" y="132" width="12" height="18"/><rect x="416" y="132" width="16" height="18"/><rect x="444" y="132" width="16" height="18"/><rect x="472" y="132" width="16" height="18"/>
     </g>
   </g>
-  <g stroke="#0b1530" stroke-width="2" opacity="0.3" fill="none">
+  <g stroke="#0369a1" stroke-width="2" opacity="0.3" fill="none">
     <path d="M280 20 V13 M280 20 L286 23"/>
   </g>
 </svg>
