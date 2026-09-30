@@ -1,0 +1,74 @@
+{% extends "events/base.html" %}
+{% block title %}Browse Events{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Browse events</h1>
+    <p>Explore everything happening across campus.</p>
+  </div>
+  {% if user.is_staff %}
+    <div class="actions">
+      <a href="{% url 'event_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Create event</a>
+    </div>
+  {% endif %}
+</div>
+
+<form class="filter-bar" method="get" id="filterForm">
+  <input type="hidden" name="category" value="{{ selected_category }}">
+  <div class="row g-2 align-items-center mb-3">
+    <div class="col-md">
+      <div class="input-icon">
+        <i class="bi bi-search"></i>
+        <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search by title, venue or description">
+      </div>
+    </div>
+    <div class="col-8 col-md-3">
+      <select class="form-select" name="status" onchange="this.form.submit()" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+          <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-4 col-md-auto">
+      <button class="btn btn-primary w-100" type="submit">Search</button>
+    </div>
+  </div>
+  <div class="chip-row" role="group" aria-label="Filter by category">
+    <a class="chip {% if not selected_category %}active{% endif %}" href="?q={{ q|urlencode }}&status={{ selected_status }}">All</a>
+    {% for value, label in categories %}
+      <a class="chip {% if selected_category == value %}active{% endif %}" href="?category={{ value }}&q={{ q|urlencode }}&status={{ selected_status }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</form>
+
+<div class="d-flex justify-content-between align-items-center results-meta">
+  <span><strong>{{ events|length }}</strong> event{{ events|length|pluralize }} found</span>
+  {% if q or selected_category or selected_status %}
+    <a href="{% url 'event_list' %}" class="small fw-semibold"><i class="bi bi-x-circle"></i> Clear filters</a>
+  {% endif %}
+</div>
+
+{% for section in sections %}
+  <section class="mb-5" id="{{ section.key }}-events">
+    <div class="section-head">
+      <div>
+        <h2>{{ section.title }} <span class="count-badge">{{ section.events|length }}</span></h2>
+        <p>{{ section.subtitle }}</p>
+      </div>
+    </div>
+    <div class="row g-4{% if section.key != 'active' %} past-events{% endif %}">
+      {% for event in section.events %}
+        {% include "events/_event_card.html" %}
+      {% endfor %}
+    </div>
+  </section>
+{% empty %}
+  <div class="card-x empty-state">
+    <div class="empty-icon"><i class="bi bi-search"></i></div>
+    <h3>No events match your filters</h3>
+    <p>Try a different keyword or category, or clear the filters to see all events.</p>
+    <a href="{% url 'event_list' %}" class="btn btn-outline">Clear filters</a>
+  </div>
+{% endfor %}
+{% endblock %}

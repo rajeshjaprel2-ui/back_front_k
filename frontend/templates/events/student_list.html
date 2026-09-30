@@ -1,0 +1,55 @@
+{% extends "events/base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Students</h1>
+    <p>Directory of all registered student accounts.</p>
+  </div>
+</div>
+
+<div class="card-x">
+  <div class="card-x-header">
+    <div><h3>{{ students|length }} student{{ students|length|pluralize }}</h3>{% if q %}<p>Results for “{{ q }}” · <a href="{% url 'student_list' %}">clear</a></p>{% endif %}</div>
+    <form method="get" class="input-icon" style="max-width:320px;width:100%" role="search">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search name or roll number">
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-x">
+      <thead>
+        <tr><th>Student</th><th>Roll no.</th><th>Department</th><th>Year</th><th>Phone</th><th class="text-end">Events</th></tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>
+            <div class="cell-user">
+              <span class="avatar">{% firstof s.user.first_name|first s.user.username|first %}{{ s.user.last_name|first }}</span>
+              <div>
+                <div class="name">{{ s.user.get_full_name|default:s.user.username }}</div>
+                <div class="sub">{{ s.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono">{{ s.roll_number }}</td>
+          <td>{{ s.get_department_display }}</td>
+          <td>{{ s.get_year_display }}</td>
+          <td class="text-nowrap">{{ s.phone }}</td>
+          <td class="text-end"><span class="cat-chip">{{ s.reg_count }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">
+          <div class="empty-state py-4">
+            <div class="empty-icon"><i class="bi bi-person-x"></i></div>
+            <h3>No students found</h3>
+            <p>{% if q %}Try a different name or roll number.{% else %}Student accounts will appear here once they sign up.{% endif %}</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

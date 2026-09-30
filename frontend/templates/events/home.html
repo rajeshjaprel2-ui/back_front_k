@@ -1,0 +1,115 @@
+{% extends "events/base.html" %}
+{% load static %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero mb-4">
+  <div class="row g-4 align-items-center">
+    <div class="col-lg-7">
+      <span class="hero-eyebrow">
+        <img src="{% static 'events/img/srinivas-logo.jpeg' %}" alt="">
+        Srinivas University · Events Portal
+      </span>
+      <h1>Discover, join &amp; manage <span class="highlight">campus events</span> in one place.</h1>
+      <p class="lead">Seminars, workshops, sports and cultural fests — browse what's happening on campus and reserve your seat in seconds.</p>
+      {% if user.is_authenticated %}
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'dashboard' %}" class="btn btn-glass btn-lg">Go to dashboard <i class="bi bi-arrow-right"></i></a>
+        </div>
+      {% endif %}
+    </div>
+    <div class="col-lg-5">
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">{{ stats.events }}</div>
+          <div class="lbl">Events hosted</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">{{ stats.students }}</div>
+          <div class="lbl">Students</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">{{ stats.registrations }}</div>
+          <div class="lbl">Registrations</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5">
+  <div class="section-head">
+    <div>
+      <h2>Happening soon</h2>
+      <p>Upcoming and ongoing events open for participation</p>
+    </div>
+    <a href="{% url 'event_list' %}" class="link-arrow">View all events <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-4">
+    {% for event in events %}
+      {% include "events/_event_card.html" %}
+    {% empty %}
+      <div class="col-12">
+        <div class="card-x empty-state">
+          <div class="empty-icon"><i class="bi bi-calendar2-x"></i></div>
+          <h3>No upcoming events yet</h3>
+          <p>New events will appear here as soon as the organisers publish them.</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% if completed %}
+<section class="mb-5">
+  <div class="section-head">
+    <div>
+      <h2>Completed events</h2>
+      <p>Recently concluded events on campus</p>
+    </div>
+    <a href="{% url 'event_list' %}?status=completed" class="link-arrow">All completed events <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-4 past-events">
+    {% for event in completed %}
+      {% include "events/_event_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if not user.is_authenticated %}
+<section>
+  <div class="section-head">
+    <div>
+      <h2>How it works</h2>
+      <p>Get started in three simple steps</p>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="step-card">
+        <span class="step-num">01</span>
+        <div class="stat-icon tint-blue"><i class="bi bi-person-plus"></i></div>
+        <h3>Create your account</h3>
+        <p>Sign up with your roll number, department and year of study.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="step-card">
+        <span class="step-num">02</span>
+        <div class="stat-icon tint-violet"><i class="bi bi-search"></i></div>
+        <h3>Find an event</h3>
+        <p>Filter by category or status and check available seats in real time.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="step-card">
+        <span class="step-num">03</span>
+        <div class="stat-icon tint-green"><i class="bi bi-ticket-perforated"></i></div>
+        <h3>Reserve your seat</h3>
+        <p>Register in one click and track everything from your dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

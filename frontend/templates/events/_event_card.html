@@ -1,0 +1,56 @@
+<div class="col-sm-6 col-xl-4">
+  <article class="event-card cat-{{ event.category }}">
+    <div class="event-poster">
+      {% if event.poster %}
+        <img src="{{ event.poster.url }}" alt="" loading="lazy">
+      {% else %}
+        <i class="bi {{ event.category_icon }} poster-icon" aria-hidden="true"></i>
+      {% endif %}
+      <div class="date-block" aria-hidden="true">
+        <div class="m">{{ event.date|date:"M" }}</div>
+        <div class="d">{{ event.date|date:"d" }}</div>
+      </div>
+      {% if event.has_ended and event.status != "cancelled" %}
+        <span class="status-pill badge-completed">Event Has Ended</span>
+      {% else %}
+        <span class="status-pill badge-{{ event.status }}">{{ event.get_status_display }}</span>
+      {% endif %}
+    </div>
+
+    <div class="event-body">
+      <div class="d-flex justify-content-between align-items-center gap-2">
+        <span class="cat-tag"><i class="bi {{ event.category_icon }}"></i> {{ event.get_category_display }}</span>
+        <span class="type-tag type-{{ event.participation_type }}">
+          <i class="bi {% if event.participation_type == 'solo' %}bi-person{% else %}bi-people{% endif %}"></i>
+          {% if event.participation_type == "team" %}Team{% elif event.participation_type == "both" %}Solo / Team{% else %}Solo{% endif %}
+        </span>
+      </div>
+      <h3 class="event-title"><a href="{% url 'event_detail' event.pk %}">{{ event.title }}</a></h3>
+      <ul class="event-meta">
+        <li><i class="bi bi-calendar3"></i><span>{{ event.date|date:"D, d M Y" }}{% if event.end_date and event.end_date != event.date %} – {{ event.end_date|date:"D, d M Y" }}{% endif %}</span></li>
+        <li><i class="bi bi-clock"></i><span>{{ event.time|time:"g:i A" }}{% if event.end_time %} – {{ event.end_time|time:"g:i A" }}{% endif %}</span></li>
+        <li><i class="bi bi-geo-alt"></i><span>{{ event.venue }}</span></li>
+      </ul>
+
+      <div class="event-foot">
+        {% with pct=event.occupancy_percent left=event.seats_left %}
+        <div class="seat-row">
+          <span class="left">{{ event.registered_count }} / {{ event.max_participants }} registered</span>
+          {% if event.has_ended %}
+            <span class="right">Registration closed</span>
+          {% elif left == 0 %}
+            <span class="right full">Full</span>
+          {% elif pct >= 80 %}
+            <span class="right low">Only {{ left }} left</span>
+          {% else %}
+            <span class="right">{{ left }} seats left</span>
+          {% endif %}
+        </div>
+        <div class="bar {% if left == 0 %}full{% elif pct >= 80 %}warn{% endif %}">
+          <span style="width: {{ pct }}%"></span>
+        </div>
+        {% endwith %}
+      </div>
+    </div>
+  </article>
+</div>

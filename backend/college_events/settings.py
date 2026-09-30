@@ -1,0 +1,105 @@
+"""
+Django settings for College Events Management System.
+"""
+
+import os
+from pathlib import Path
+
+import django_mongodb_backend
+from django.contrib.messages import constants as message_constants
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+
+load_dotenv(PROJECT_ROOT / ".env")
+
+SECRET_KEY = "django-insecure-college-events-bca-minor-project-key"
+
+DEBUG = True
+
+ALLOWED_HOSTS = ["*"]
+
+INSTALLED_APPS = [
+    "college_events.apps.MongoAdminConfig",
+    "college_events.apps.MongoAuthConfig",
+    "college_events.apps.MongoContentTypesConfig",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_mongodb_backend",
+    "events",
+]
+
+MIGRATION_MODULES = {
+    "admin": "mongo_migrations.admin",
+    "auth": "mongo_migrations.auth",
+    "contenttypes": "mongo_migrations.contenttypes",
+}
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "events.middleware.EventStatusMiddleware",
+]
+
+ROOT_URLCONF = "college_events.urls"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [FRONTEND_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "college_events.wsgi.application"
+
+DATABASES = {
+    "default": django_mongodb_backend.parse_uri(os.environ["MONGODB_URI"], db_name="college_events"),
+}
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    },
+]
+
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "Asia/Kolkata"
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = "static/"
+STATICFILES_DIRS = [FRONTEND_DIR / "static"]
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = PROJECT_ROOT / "media"
+
+DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "home"
+
+MESSAGE_TAGS = {
+    message_constants.DEBUG: "secondary",
+    message_constants.INFO: "info",
+    message_constants.SUCCESS: "success",
+    message_constants.WARNING: "warning",
+    message_constants.ERROR: "danger",
+}

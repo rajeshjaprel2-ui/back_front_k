@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="184" viewBox="0 -24 560 184" preserveAspectRatio="xMaxYMax meet">
+  <g fill="#ffffff">
+    <!-- trees -->
+    <g opacity="0.10">
+      <circle cx="30" cy="118" r="18"/><rect x="28" y="125" width="4" height="35"/>
+      <circle cx="520" cy="112" r="22"/><rect x="518" y="122" width="4" height="38"/>
+      <circle cx="545" cy="124" r="14"/><rect x="543" y="130" width="3" height="30"/>
+    </g>
+    <!-- side wing (left) -->
+    <g opacity="0.14">
+      <rect x="60" y="90" width="120" height="70"/>
+      <path d="M52 92 L120 66 L188 92 Z"/>
+    </g>
+    <!-- side wing (right) -->
+    <g opacity="0.14">
+      <rect x="380" y="90" width="120" height="70"/>
+      <path d="M372 92 L440 66 L508 92 Z"/>
+    </g>
+    <!-- main hall -->
+    <g opacity="0.2">
+      <rect x="180" y="70" width="200" height="90"/>
+      <path d="M166 74 L280 30 L394 74 Z"/>
+      <!-- clock tower -->
+      <rect x="260" y="0" width="40" height="40"/>
+      <path d="M254 4 L280 -18 L306 4 Z"/>
+    </g>
+  </g>
+  <!-- windows & columns -->
+  <g fill="#0b1530" opacity="0.25">
+    <circle cx="280" cy="20" r="11"/>
+    <rect x="198" y="84" width="10" height="76"/><rect x="226" y="84" width="10" height="76"/>
+    <rect x="254" y="84" width="10" height="76"/><rect x="296" y="84" width="10" height="76"/>
+    <rect x="324" y="84" width="10" height="76"/><rect x="352" y="84" width="10" height="76"/>
+    <rect x="268" y="110" width="24" height="50" rx="12"/>
+    <g>
+      <rect x="76" y="104" width="16" height="18"/><rect x="104" y="104" width="16" height="18"/><rect x="132" y="104" width="16" height="18"/><rect x="160" y="104" width="12" height="18"/>
+      <rect x="76" y="132" width="16" height="18"/><rect x="104" y="132" width="16" height="18"/><rect x="132" y="132" width="16" height="18"/><rect x="160" y="132" width="12" height="18"/>
+      <rect x="392" y="104" width="12" height="18"/><rect x="416" y="104" width="16" height="18"/><rect x="444" y="104" width="16" height="18"/><rect x="472" y="104" width="16" height="18"/>
+      <rect x="392" y="132" width="12" height="18"/><rect x="416" y="132" width="16" height="18"/><rect x="444" y="132" width="16" height="18"/><rect x="472" y="132" width="16" height="18"/>
+    </g>
+  </g>
+  <g stroke="#0b1530" stroke-width="2" opacity="0.3" fill="none">
+    <path d="M280 20 V13 M280 20 L286 23"/>
+  </g>
+</svg>

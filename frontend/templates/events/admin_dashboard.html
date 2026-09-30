@@ -1,0 +1,136 @@
+{% extends "events/base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<section class="welcome-banner mb-4">
+  <div>
+    <h1>Welcome back, {{ user.first_name|default:user.username }} 🎓</h1>
+    <p>Here's an overview of events and participation across campus.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'reports' %}" class="btn btn-glass"><i class="bi bi-bar-chart-line"></i> Reports</a>
+    <a href="{% url 'event_create' %}" class="btn btn-white"><i class="bi bi-plus-lg"></i> Create event</a>
+  </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Total events</div><div class="value">{{ total_events }}</div><div class="hint">All time</div></div>
+      <span class="stat-icon tint-blue"><i class="bi bi-calendar2-event"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Upcoming</div><div class="value">{{ upcoming_events }}</div><div class="hint">Scheduled events</div></div>
+      <span class="stat-icon tint-amber"><i class="bi bi-hourglass-split"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Students</div><div class="value">{{ total_students }}</div><div class="hint">Registered accounts</div></div>
+      <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Registrations</div><div class="value">{{ total_registrations }}</div><div class="hint">Across all events</div></div>
+      <span class="stat-icon tint-green"><i class="bi bi-ticket-perforated"></i></span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card-x">
+      <div class="card-x-header">
+        <div><h3>Recent events</h3><p>Latest events and their seat occupancy</p></div>
+        <a href="{% url 'event_list' %}" class="link-arrow">See all <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-x">
+          <thead><tr><th>Event</th><th>Status</th><th>Occupancy</th><th class="text-end">Actions</th></tr></thead>
+          <tbody>
+            {% for e in events %}
+            <tr>
+              <td>
+                <div class="cell-user cat-{{ e.category }}">
+                  <span class="stat-icon" style="width:36px;height:36px;font-size:1rem;background:var(--cat-soft);color:var(--cat-ink)"><i class="bi {{ e.category_icon }}"></i></span>
+                  <div class="min-w-0">
+                    <a href="{% url 'event_detail' e.pk %}" class="cell-title d-block text-truncate" style="max-width:240px">{{ e.title }}</a>
+                    <div class="sub small text-muted">{{ e.get_category_display }} · {{ e.date|date:"d M Y" }}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="status-pill badge-{{ e.status }}">{{ e.get_status_display }}</span></td>
+              <td>
+                <div class="mini-bar">
+                  <div class="bar"><span style="width: {% widthratio e.reg_count e.max_participants 100 %}%"></span></div>
+                  <small>{{ e.reg_count }}/{{ e.max_participants }}</small>
+                </div>
+              </td>
+              <td class="text-end text-nowrap">
+                <a class="btn btn-sm btn-light-soft" href="{% url 'participants' e.pk %}" title="Participants"><i class="bi bi-people"></i></a>
+                <a class="btn btn-sm btn-outline" href="{% url 'event_edit' e.pk %}" title="Edit"><i class="bi bi-pencil"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">
+              <div class="empty-state py-4">
+                <div class="empty-icon"><i class="bi bi-calendar2-plus"></i></div>
+                <h3>No events yet</h3>
+                <p>Create your first event to start accepting registrations.</p>
+                <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">Create event</a>
+              </div>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card-x mb-4">
+      <div class="card-x-header"><h3>Quick actions</h3></div>
+      <div class="card-x-body">
+        <div class="quick-grid">
+          <a class="quick-tile" href="{% url 'event_create' %}">
+            <span class="stat-icon tint-blue"><i class="bi bi-plus-square"></i></span>
+            <strong>New event</strong><small>Publish an event</small>
+          </a>
+          <a class="quick-tile" href="{% url 'student_list' %}">
+            <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
+            <strong>Students</strong><small>View directory</small>
+          </a>
+          <a class="quick-tile" href="{% url 'reports' %}#all-events">
+            <span class="stat-icon tint-green"><i class="bi bi-people"></i></span>
+            <strong>Participants</strong><small>Manage lists</small>
+          </a>
+          <a class="quick-tile" href="{% url 'reports' %}">
+            <span class="stat-icon tint-amber"><i class="bi bi-graph-up-arrow"></i></span>
+            <strong>Reports</strong><small>Insights &amp; export</small>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-x">
+      <div class="card-x-header"><div><h3>Latest registrations</h3><p>Most recent sign-ups</p></div></div>
+      <ul class="list-x">
+        {% for r in recent_regs %}
+          <li>
+            <span class="avatar avatar-sm">{% firstof r.student.first_name|first r.student.username|first %}{{ r.student.last_name|first }}</span>
+            <div class="grow">
+              <span class="title">{{ r.student.get_full_name|default:r.student.username }}</span>
+              <div class="sub">{{ r.event.title }}</div>
+            </div>
+            <span class="meta">{{ r.registered_at|date:"d M, g:i A" }}</span>
+          </li>
+        {% empty %}
+          <li class="justify-content-center text-muted py-4">No registrations yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

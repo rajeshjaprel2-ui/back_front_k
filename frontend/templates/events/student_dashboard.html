@@ -1,0 +1,115 @@
+{% extends "events/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="welcome-banner mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <span class="avatar avatar-lg" style="background:rgba(255,255,255,.15);color:#fff">{% firstof user.first_name|first user.username|first %}{{ user.last_name|first }}</span>
+    <div>
+      <h1>Hello, {{ user.first_name|default:user.username }} 👋</h1>
+      <p>Here's what's happening with your events.</p>
+      {% if profile %}
+        <div class="profile-pills">
+          <span class="profile-pill"><i class="bi bi-person-badge"></i> {{ profile.roll_number }}</span>
+          <span class="profile-pill"><i class="bi bi-building"></i> {{ profile.get_department_display }}</span>
+          <span class="profile-pill"><i class="bi bi-mortarboard"></i> {{ profile.get_year_display }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <a href="{% url 'event_list' %}" class="btn btn-white"><i class="bi bi-search"></i> Find events</a>
+</section>
+
+<div class="row g-4 mb-5">
+  <div class="col-lg-5">
+    <div class="card-x h-100">
+      <div class="card-x-header">
+        <div>
+          <h3>My registrations</h3>
+          <p>{{ my_regs|length }} event{{ my_regs|length|pluralize }} registered</p>
+        </div>
+        {% if my_regs %}<a href="{% url 'my_registrations' %}" class="link-arrow">View all <i class="bi bi-arrow-right"></i></a>{% endif %}
+      </div>
+      <ul class="list-x">
+        {% for r in my_regs|slice:":5" %}
+          <li class="cat-{{ r.event.category }}">
+            <div class="date-mini">
+              <div class="m">{{ r.event.date|date:"M" }}</div>
+              <div class="d">{{ r.event.date|date:"d" }}</div>
+            </div>
+            <div class="grow">
+              <a href="{% url 'event_detail' r.event.pk %}" class="title">{{ r.event.title }}</a>
+              <div class="sub"><i class="bi bi-clock"></i> {{ r.event.time|time:"g:i A" }} · {{ r.event.venue }}</div>
+            </div>
+            <span class="status-pill badge-{{ r.event.status }}">{{ r.event.get_status_display }}</span>
+          </li>
+        {% empty %}
+          <li class="d-block">
+            <div class="empty-state py-4">
+              <div class="empty-icon"><i class="bi bi-ticket-perforated"></i></div>
+              <h3>No registrations yet</h3>
+              <p>Pick an event below and reserve your seat.</p>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="row g-3 h-100">
+      <div class="col-sm-6">
+        <div class="stat-card">
+          <div>
+            <div class="label">Events joined</div>
+            <div class="value">{{ my_regs|length }}</div>
+            <div class="hint">All-time registrations</div>
+          </div>
+          <span class="stat-icon tint-blue"><i class="bi bi-ticket-perforated"></i></span>
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <div class="stat-card">
+          <div>
+            <div class="label">Open to join</div>
+            <div class="value">{{ upcoming|length }}</div>
+            <div class="hint">Upcoming events available</div>
+          </div>
+          <span class="stat-icon tint-green"><i class="bi bi-calendar2-plus"></i></span>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="card-x card-x-body h-100 d-flex align-items-center gap-3">
+          <span class="stat-icon tint-amber"><i class="bi bi-lightbulb"></i></span>
+          <div>
+            <div class="fw-bold">Tip</div>
+            <div class="small text-muted">Popular events fill up quickly — look for the <span class="text-warning fw-bold">"Only X left"</span> label and register early.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="section-head">
+    <div>
+      <h2>Recommended for you</h2>
+      <p>Upcoming events you haven't registered for yet</p>
+    </div>
+    <a href="{% url 'event_list' %}" class="link-arrow">Browse all <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-4">
+    {% for event in upcoming %}
+      {% include "events/_event_card.html" %}
+    {% empty %}
+      <div class="col-12">
+        <div class="card-x empty-state">
+          <div class="empty-icon"><i class="bi bi-check2-all"></i></div>
+          <h3>You're all caught up</h3>
+          <p>You've registered for every open event. Check back soon for new ones.</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

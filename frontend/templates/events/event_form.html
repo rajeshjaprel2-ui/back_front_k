@@ -1,0 +1,212 @@
+{% extends "events/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div style="max-width: 880px; margin: 0 auto;">
+  <nav class="breadcrumb-lite" aria-label="Breadcrumb">
+    <a href="{% url 'event_list' %}">Events</a>
+    <i class="bi bi-chevron-right"></i>
+    {% if event %}<a href="{% url 'event_detail' event.pk %}" class="text-truncate">{{ event.title }}</a><i class="bi bi-chevron-right"></i>{% endif %}
+    <span>{{ title }}</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <h1>{{ title }}</h1>
+      <p>{% if event %}Update the details students see for this event.{% else %}Publish a new seminar, workshop, sports or cultural event.{% endif %}</p>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="card-x" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="notice notice-danger m-4 mb-0"><i class="bi bi-exclamation-circle-fill"></i> {{ form.non_field_errors|join:" " }}</div>
+    {% endif %}
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-blue"><i class="bi bi-card-text"></i></span>
+        <div><h3>Basic information</h3><p>Title, description and type of event.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label" for="{{ form.title.id_for_label }}">Event title <span class="req">*</span></label>
+          {{ form.title }}{{ form.title.errors }}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="{{ form.description.id_for_label }}">Description <span class="req">*</span></label>
+          {{ form.description }}{{ form.description.errors }}
+          <div class="form-hint">Include the agenda, speakers, eligibility and anything participants should bring.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.category.id_for_label }}">Category <span class="req">*</span></label>
+          {{ form.category }}{{ form.category.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.status.id_for_label }}">Status <span class="req">*</span></label>
+          {{ form.status }}{{ form.status.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-violet"><i class="bi bi-calendar3"></i></span>
+        <div><h3>Schedule &amp; venue</h3><p>When and where the event takes place.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.starts_at.id_for_label }}">Starts <span class="req">*</span></label>
+          {{ form.starts_at }}{{ form.starts_at.errors }}
+          <div class="form-hint">Past dates can't be selected — only today or a future date.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.ends_at.id_for_label }}">Until</label>
+          {{ form.ends_at }}{{ form.ends_at.errors }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="{{ form.max_participants.id_for_label }}">Capacity <span class="req">*</span></label>
+          {{ form.max_participants }}{{ form.max_participants.errors }}
+        </div>
+        <div class="col-md-8">
+          <label class="form-label" for="{{ form.venue.id_for_label }}">Venue <span class="req">*</span></label>
+          {{ form.venue }}{{ form.venue.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-green"><i class="bi bi-people"></i></span>
+        <div><h3>Participation</h3><p>Whether students take part individually or as a team.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.participation_type.id_for_label }}">Participation type <span class="req">*</span></label>
+          {{ form.participation_type }}{{ form.participation_type.errors }}
+          <div class="form-hint text-primary fw-semibold" id="teamSportHint" hidden><i class="bi bi-info-circle"></i> This is a team sport, so participation is set to Team.</div>
+        </div>
+        <div class="col-md-6" id="teamSizeField">
+          <label class="form-label" for="{{ form.max_team_size.id_for_label }}">Max players per team</label>
+          {{ form.max_team_size }}{{ form.max_team_size.errors }}
+          <div class="form-hint">Includes the student who registers the team.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-amber"><i class="bi bi-journal-check"></i></span>
+        <div><h3>Rules &amp; regulations</h3><p>Shown to students in a separate section on the event page.</p></div>
+      </div>
+      <label class="form-label" for="{{ form.rules.id_for_label }}">Rules <span class="req">*</span></label>
+      {{ form.rules }}{{ form.rules.errors }}
+      <div class="form-hint">Write one rule per line — each line is shown as a numbered point.</div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-slate"><i class="bi bi-person-lines-fill"></i></span>
+        <div><h3>Event coordinators</h3><p>Students can contact them for queries about this event.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.student_coordinator_name.id_for_label }}">Student coordinator name <span class="req">*</span></label>
+          {{ form.student_coordinator_name }}{{ form.student_coordinator_name.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.student_coordinator_phone.id_for_label }}">Student coordinator phone <span class="req">*</span></label>
+          {{ form.student_coordinator_phone }}{{ form.student_coordinator_phone.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.teacher_coordinator_name.id_for_label }}">Teacher coordinator name <span class="req">*</span></label>
+          {{ form.teacher_coordinator_name }}{{ form.teacher_coordinator_name.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.teacher_coordinator_phone.id_for_label }}">Teacher coordinator phone <span class="req">*</span></label>
+          {{ form.teacher_coordinator_phone }}{{ form.teacher_coordinator_phone.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-rose"><i class="bi bi-image"></i></span>
+        <div><h3>Poster</h3><p>Optional. A landscape image works best (16:9).</p></div>
+      </div>
+      <label class="upload-zone d-block" id="uploadZone">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <div class="fw-semibold mt-2">Click to upload or drag &amp; drop</div>
+        <div class="small text-muted">PNG or JPG</div>
+        <input type="file" name="{{ form.poster.html_name }}" id="{{ form.poster.id_for_label }}" accept="image/*">
+        <img id="posterPreview" alt="" {% if event.poster %}src="{{ event.poster.url }}"{% else %}hidden{% endif %}>
+      </label>
+      {{ form.poster.errors }}
+    </div>
+
+    <div class="form-actions">
+      <a href="{% if event %}{% url 'event_detail' event.pk %}{% else %}{% url 'event_list' %}{% endif %}" class="btn btn-outline">Cancel</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% if event %}Save changes{% else %}Publish event{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ team_sports|json_script:"teamSports" }}
+<script>
+  (function () {
+    const zone = document.getElementById("uploadZone");
+    const input = zone.querySelector("input[type=file]");
+    const preview = document.getElementById("posterPreview");
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+    });
+    ["dragenter", "dragover"].forEach((ev) => zone.addEventListener(ev, () => zone.classList.add("drag")));
+    ["dragleave", "drop"].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove("drag")));
+
+    const typeSelect = document.getElementById("{{ form.participation_type.id_for_label }}");
+    const teamSizeField = document.getElementById("teamSizeField");
+    function syncTeamSize() { teamSizeField.hidden = typeSelect.value === "solo"; }
+    typeSelect.addEventListener("change", syncTeamSize);
+    syncTeamSize();
+
+    const teamSports = JSON.parse(document.getElementById("teamSports").textContent);
+    const titleInput = document.getElementById("{{ form.title.id_for_label }}");
+    const categorySelect = document.getElementById("{{ form.category.id_for_label }}");
+    const teamSizeInput = document.getElementById("{{ form.max_team_size.id_for_label }}");
+    const teamSportHint = document.getElementById("teamSportHint");
+    const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    function teamSportSize() {
+      if (categorySelect.value !== "sports") return null;
+      const title = titleInput.value.toLowerCase();
+      for (const [sport, size] of Object.entries(teamSports)) {
+        if (new RegExp(`\\b${escapeRe(sport)}\\b`).test(title)) return size;
+      }
+      return null;
+    }
+    function syncTeamSport() {
+      const size = teamSportSize();
+      teamSportHint.hidden = !size;
+      typeSelect.querySelectorAll("option").forEach((o) => { o.disabled = Boolean(size) && o.value !== "team"; });
+      if (!size) return;
+      if (typeSelect.value !== "team") {
+        typeSelect.value = "team";
+        if (parseInt(teamSizeInput.value, 10) < size) teamSizeInput.value = size;
+      }
+      syncTeamSize();
+    }
+    titleInput.addEventListener("input", syncTeamSport);
+    categorySelect.addEventListener("change", syncTeamSport);
+    syncTeamSport();
+
+    const startsAt = document.getElementById("{{ form.starts_at.id_for_label }}");
+    const endsAt = document.getElementById("{{ form.ends_at.id_for_label }}");
+    function syncEndMin() { endsAt.min = startsAt.value; }
+    startsAt.addEventListener("change", syncEndMin);
+    syncEndMin();
+  })();
+</script>
+{% endblock %}

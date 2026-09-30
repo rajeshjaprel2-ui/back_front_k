@@ -1,0 +1,133 @@
+{% extends "events/base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Event reports</h1>
+    <p>Participation insights across all categories and events.</p>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-outline" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Total events</div><div class="value">{{ total_events }}</div></div>
+      <span class="stat-icon tint-blue"><i class="bi bi-calendar2-event"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Students</div><div class="value">{{ total_students }}</div></div>
+      <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div><div class="label">Registrations</div><div class="value">{{ total_registrations }}</div></div>
+      <span class="stat-icon tint-green"><i class="bi bi-ticket-perforated"></i></span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div>
+        <div class="label">Upcoming · Completed</div>
+        <div class="value">{{ upcoming }} <span class="text-muted fw-semibold fs-5">/ {{ completed }}</span></div>
+      </div>
+      <span class="stat-icon tint-amber"><i class="bi bi-flag"></i></span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card-x h-100">
+      <div class="card-x-header"><div><h3>Events by category</h3><p>Share of events and registrations per category</p></div></div>
+      <div class="card-x-body">
+        <div class="breakdown">
+          {% for row in by_category %}
+            <div class="breakdown-row cat-{{ row.key }}">
+              <div class="top">
+                <span class="name"><span class="dot"></span>{{ row.label }}</span>
+                <span class="val"><strong>{{ row.total }}</strong> event{{ row.total|pluralize }} · {{ row.regs }} reg.</span>
+              </div>
+              <div class="bar"><span style="width: {% widthratio row.total total_events 100 %}%"></span></div>
+            </div>
+          {% empty %}
+            <p class="text-muted mb-0">No data yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card-x h-100">
+      <div class="card-x-header"><div><h3>Most popular events</h3><p>Ranked by number of participants</p></div></div>
+      <ul class="list-x">
+        {% for e in top_events %}
+          <li>
+            <span class="rank rank-{{ forloop.counter }}">{{ forloop.counter }}</span>
+            <div class="grow">
+              <a href="{% url 'event_detail' e.pk %}" class="title">{{ e.title }}</a>
+              <div class="mini-bar mt-1">
+                <div class="bar"><span style="width: {% widthratio e.reg_count e.max_participants 100 %}%"></span></div>
+                <small>{{ e.reg_count }}/{{ e.max_participants }}</small>
+              </div>
+            </div>
+          </li>
+        {% empty %}
+          <li class="justify-content-center text-muted py-4">No data yet.</li>
+        {% endfor %}
+      </ul>
+      {% if by_status %}
+        <div class="card-x-body border-top d-flex flex-wrap gap-2">
+          {% for row in by_status %}
+            <span class="status-pill badge-{{ row.key }}">{{ row.label }} · {{ row.total }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card-x" id="all-events">
+  <div class="card-x-header">
+    <div><h3>All events</h3><p>Full report with capacity and participant lists</p></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-x">
+      <thead>
+        <tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th>Occupancy</th><th class="text-end">Participants</th></tr>
+      </thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td>
+            <a href="{% url 'event_detail' e.pk %}" class="cell-title">{{ e.title }}</a>
+            <div class="small text-muted">{{ e.get_category_display }}</div>
+          </td>
+          <td class="text-nowrap">{{ e.date|date:"d M Y" }}</td>
+          <td>{{ e.venue }}</td>
+          <td><span class="status-pill badge-{{ e.status }}">{{ e.get_status_display }}</span></td>
+          <td>
+            <div class="mini-bar">
+              <div class="bar"><span style="width: {% widthratio e.reg_count e.max_participants 100 %}%"></span></div>
+              <small>{{ e.reg_count }}/{{ e.max_participants }}</small>
+            </div>
+          </td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'participants' e.pk %}" class="btn btn-sm btn-light-soft"><i class="bi bi-people"></i> View</a>
+            <a href="{% url 'export_participants' e.pk %}" class="btn btn-sm btn-outline" title="Export CSV"><i class="bi bi-download"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No events yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

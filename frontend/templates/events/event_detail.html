@@ -1,0 +1,273 @@
+{% extends "events/base.html" %}
+{% block title %}{{ event.title }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb-lite" aria-label="Breadcrumb">
+  <a href="{% url 'event_list' %}">Events</a>
+  <i class="bi bi-chevron-right"></i>
+  <span class="text-truncate">{{ event.title }}</span>
+</nav>
+
+<section class="detail-hero cat-{{ event.category }}">
+  {% if event.poster %}
+    <img src="{{ event.poster.url }}" alt="">
+  {% else %}
+    <i class="bi {{ event.category_icon }} poster-icon" aria-hidden="true"></i>
+  {% endif %}
+  <div class="content">
+    <div class="chips">
+      <span class="glass-chip"><i class="bi {{ event.category_icon }}"></i> {{ event.get_category_display }}</span>
+      {% if event.has_ended and event.status != "cancelled" %}
+        <span class="status-pill badge-completed">Event Has Ended</span>
+      {% else %}
+        <span class="status-pill badge-{{ event.status }}">{{ event.get_status_display }}</span>
+      {% endif %}
+      <span class="glass-chip"><i class="bi {% if event.participation_type == 'solo' %}bi-person{% else %}bi-people{% endif %}"></i> {% if event.participation_type == "team" %}Team{% elif event.participation_type == "both" %}Solo or Team{% else %}Solo{% endif %}</span>
+    </div>
+    <h1>{{ event.title }}</h1>
+    <div class="hero-meta">
+      <span><i class="bi bi-calendar3"></i> {{ event.date|date:"l, d F Y" }}{% if event.end_date and event.end_date != event.date %} – {{ event.end_date|date:"l, d F Y" }}{% endif %}</span>
+      <span><i class="bi bi-clock"></i> {{ event.time|time:"g:i A" }}{% if event.end_time %} – {{ event.end_time|time:"g:i A" }}{% endif %}</span>
+      <span><i class="bi bi-geo-alt"></i> {{ event.venue }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card-x mb-4">
+      <div class="card-x-header"><h3>About this event</h3></div>
+      <div class="card-x-body prose">{{ event.description|linebreaks }}</div>
+    </div>
+
+    <div class="card-x mb-4">
+      <div class="card-x-header">
+        <div>
+          <h3><i class="bi bi-journal-check text-primary"></i> Rules &amp; regulations</h3>
+          <p>Please read carefully before registering</p>
+        </div>
+      </div>
+      <div class="card-x-body">
+        {% if event.rule_list %}
+          <ol class="rules-list">
+            {% for rule in event.rule_list %}<li>{{ rule }}</li>{% endfor %}
+          </ol>
+        {% else %}
+          <p class="text-muted mb-0">Rules for this event will be announced by the coordinators soon.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-x mb-4">
+      <div class="card-x-header">
+        <div>
+          <h3><i class="bi bi-person-lines-fill text-primary"></i> Event coordinators</h3>
+          <p>Contact them for any queries about this event</p>
+        </div>
+      </div>
+      <div class="card-x-body">
+        {% if event.has_coordinators %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="coordinator-card">
+                <span class="stat-icon tint-blue"><i class="bi bi-mortarboard"></i></span>
+                <div class="min-w-0">
+                  <div class="role">Student coordinator</div>
+                  <div class="name">{{ event.student_coordinator_name|default:"—" }}</div>
+                  {% if event.student_coordinator_phone %}
+                    <a href="tel:{{ event.student_coordinator_phone }}" class="phone"><i class="bi bi-telephone"></i> {{ event.student_coordinator_phone }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="coordinator-card">
+                <span class="stat-icon tint-violet"><i class="bi bi-person-workspace"></i></span>
+                <div class="min-w-0">
+                  <div class="role">Teacher coordinator</div>
+                  <div class="name">{{ event.teacher_coordinator_name|default:"—" }}</div>
+                  {% if event.teacher_coordinator_phone %}
+                    <a href="tel:{{ event.teacher_coordinator_phone }}" class="phone"><i class="bi bi-telephone"></i> {{ event.teacher_coordinator_phone }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Coordinator details will be updated soon.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if user.is_staff %}
+    <div class="card-x">
+      <div class="card-x-header">
+        <div>
+          <h3>Participants</h3>
+          <p>{{ participants|length }} student{{ participants|length|pluralize }} registered</p>
+        </div>
+        <a href="{% url 'participants' event.pk %}" class="link-arrow">Manage <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <ul class="list-x">
+        {% for r in participants|slice:":5" %}
+          <li>
+            <span class="avatar">{% firstof r.student.first_name|first r.student.username|first %}{{ r.student.last_name|first }}</span>
+            <div class="grow">
+              <span class="title">{{ r.student.get_full_name|default:r.student.username }}</span>
+              <div class="sub">{{ r.student.profile.roll_number|default:"—" }} · {{ r.student.profile.department|default:"—" }}</div>
+            </div>
+            <span class="meta">{{ r.registered_at|date:"d M, g:i A" }}</span>
+          </li>
+        {% empty %}
+          <li class="justify-content-center text-muted py-4">No registrations yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="sticky-side">
+      <div class="card-x card-x-body mb-3">
+        <ul class="info-list mb-4">
+          <li>
+            <span class="stat-icon tint-blue"><i class="bi bi-calendar3"></i></span>
+            <div><div class="k">Date</div><div class="v">{{ event.date|date:"D, d M Y" }}{% if event.end_date and event.end_date != event.date %} – {{ event.end_date|date:"D, d M Y" }}{% endif %}</div></div>
+          </li>
+          <li>
+            <span class="stat-icon tint-violet"><i class="bi bi-clock"></i></span>
+            <div><div class="k">Time</div><div class="v">{{ event.time|time:"g:i A" }}{% if event.end_time %} – {{ event.end_time|time:"g:i A" }}{% endif %}</div></div>
+          </li>
+          <li>
+            <span class="stat-icon tint-rose"><i class="bi bi-geo-alt"></i></span>
+            <div><div class="k">Venue</div><div class="v">{{ event.venue }}</div></div>
+          </li>
+          <li>
+            <span class="stat-icon tint-green"><i class="bi bi-people"></i></span>
+            <div><div class="k">Participation</div><div class="v">{{ event.get_participation_type_display }}{% if event.participation_type != "solo" %} · up to {{ event.max_team_size }} players per team{% endif %}</div></div>
+          </li>
+        </ul>
+
+        {% if event.has_ended and event.status != "cancelled" %}
+          <div class="ended-banner mb-3">
+            <i class="bi bi-flag-fill"></i>
+            <div>
+              <strong>Event Has Ended</strong>
+              <span>Ended on {{ event.ends_at|date:"D, d M Y" }} at {{ event.ends_at|time:"g:i A" }}. Registration is closed.</span>
+            </div>
+          </div>
+        {% endif %}
+
+        {% with pct=event.occupancy_percent left=event.seats_left %}
+        <div class="d-flex justify-content-between align-items-end mb-2">
+          <div>
+            <div class="small text-muted fw-semibold">Seats filled</div>
+            <div class="fw-bold fs-5">{{ event.registered_count }} <span class="text-muted fs-6 fw-semibold">/ {{ event.max_participants }}</span></div>
+          </div>
+          {% if event.has_ended %}
+            <span class="small fw-bold text-muted">Closed</span>
+          {% else %}
+          <span class="small fw-bold {% if left == 0 %}text-danger{% elif pct >= 80 %}text-warning{% else %}text-success{% endif %}">
+            {% if left == 0 %}Fully booked{% else %}{{ left }} left{% endif %}
+          </span>
+          {% endif %}
+        </div>
+        <div class="bar bar-lg mb-4 {% if left == 0 %}full{% elif pct >= 80 %}warn{% endif %}"><span style="width: {{ pct }}%"></span></div>
+        {% endwith %}
+
+        {% if user.is_authenticated and not user.is_staff %}
+          {% if already %}
+            <div class="notice notice-success mb-3"><i class="bi bi-check-circle-fill"></i> {% if event.has_ended %}You took part in this event.{% else %}You're registered for this event.{% endif %}</div>
+            <a href="{% url 'my_registrations' %}" class="btn btn-outline w-100">View my registrations</a>
+          {% elif event.has_ended %}
+          {% elif event.is_open %}
+            <form method="post" action="{% url 'register_event' event.pk %}" id="registerForm">
+              {% csrf_token %}
+              {% if event.participation_type == "both" %}
+                <label class="form-label">Participate as</label>
+                <div class="d-flex gap-3 mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="participation_type" id="ptSolo" value="solo" checked>
+                    <label class="form-check-label" for="ptSolo">Solo</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="participation_type" id="ptTeam" value="team">
+                    <label class="form-check-label" for="ptTeam">Team</label>
+                  </div>
+                </div>
+              {% else %}
+                <input type="hidden" name="participation_type" value="{{ event.participation_type }}">
+              {% endif %}
+
+              {% if event.participation_type != "solo" %}
+                <div id="teamFields" class="mb-3" {% if event.participation_type == "both" %}hidden{% endif %}>
+                  <label class="form-label" for="teamName">Team name <span class="req">*</span></label>
+                  <input type="text" class="form-control mb-3" id="teamName" name="team_name" maxlength="100" placeholder="e.g. Code Warriors">
+                  <label class="form-label">Players <span class="small text-muted fw-normal">(max {{ event.max_team_size }}, including you)</span></label>
+                  <input type="text" class="form-control mb-2" value="{{ user.get_full_name|default:user.username }} (you)" disabled>
+                  <div id="memberList">
+                    <input type="text" class="form-control mb-2" name="member" maxlength="100" placeholder="Player 2 name">
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" id="addMember" data-max="{{ event.max_team_size }}"><i class="bi bi-plus-lg"></i> Add player</button>
+                </div>
+              {% endif %}
+              <button class="btn btn-primary btn-lg w-100" type="submit"><i class="bi bi-ticket-perforated"></i> Reserve my seat</button>
+            </form>
+            <p class="small text-muted text-center mt-2 mb-0">You can cancel any time before the event.</p>
+          {% else %}
+            <div class="notice notice-warning"><i class="bi bi-lock-fill"></i> Registration is closed for this event.</div>
+          {% endif %}
+        {% elif user.is_staff %}
+          <div class="d-grid gap-2">
+            <a href="{% url 'participants' event.pk %}" class="btn btn-primary"><i class="bi bi-people"></i> Manage participants</a>
+            <a href="{% url 'event_edit' event.pk %}" class="btn btn-outline"><i class="bi bi-pencil-square"></i> Edit event</a>
+            <a href="{% url 'event_delete' event.pk %}" class="btn btn-ghost-danger"><i class="bi bi-trash3"></i> Delete event</a>
+          </div>
+        {% else %}
+          {% if event.has_ended %}
+          {% elif event.is_open %}
+            <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="btn btn-primary btn-lg w-100">Sign in to register</a>
+            <p class="small text-muted text-center mt-2 mb-0">New student? <a href="{% url 'student_register' %}" class="fw-semibold">Create an account</a></p>
+          {% else %}
+            <div class="notice notice-warning"><i class="bi bi-lock-fill"></i> Registration is closed for this event.</div>
+          {% endif %}
+        {% endif %}
+      </div>
+      <a href="{% url 'event_list' %}" class="link-arrow"><i class="bi bi-arrow-left"></i> Back to all events</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById("registerForm");
+    const teamFields = document.getElementById("teamFields");
+    if (!form || !teamFields) return;
+
+    function syncTeam() {
+      const picked = form.querySelector("input[name=participation_type]:checked");
+      if (picked) teamFields.hidden = picked.value !== "team";
+    }
+    form.querySelectorAll("input[name=participation_type]").forEach((r) => r.addEventListener("change", syncTeam));
+    syncTeam();
+
+    const list = document.getElementById("memberList");
+    const addBtn = document.getElementById("addMember");
+    const max = parseInt(addBtn.dataset.max, 10);
+    function syncAdd() { addBtn.hidden = list.children.length + 1 >= max; }
+    addBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.name = "member";
+      input.maxLength = 100;
+      input.className = "form-control mb-2";
+      input.placeholder = `Player ${list.children.length + 2} name`;
+      list.appendChild(input);
+      input.focus();
+      syncAdd();
+    });
+    syncAdd();
+  })();
+</script>
+{% endblock %}

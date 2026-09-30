@@ -1,0 +1,51 @@
+{% extends "events/base.html" %}
+{% block title %}My Registrations{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>My registrations</h1>
+    <p>Events you've reserved a seat for.</p>
+  </div>
+  <div class="actions">
+    <a href="{% url 'event_list' %}" class="btn btn-primary"><i class="bi bi-search"></i> Find more events</a>
+  </div>
+</div>
+
+<div class="card-x">
+  {% if regs %}
+    <ul class="list-x">
+      {% for r in regs %}
+        <li class="cat-{{ r.event.category }} flex-wrap">
+          <div class="date-mini">
+            <div class="m">{{ r.event.date|date:"M" }}</div>
+            <div class="d">{{ r.event.date|date:"d" }}</div>
+          </div>
+          <div class="grow">
+            <a href="{% url 'event_detail' r.event.pk %}" class="title">{{ r.event.title }}</a>
+            <div class="sub">
+              <i class="bi bi-clock"></i> {{ r.event.date|date:"D" }}, {{ r.event.time|time:"g:i A" }}
+              &nbsp;·&nbsp; <i class="bi bi-geo-alt"></i> {{ r.event.venue }}
+            </div>
+          </div>
+          <span class="cat-chip d-none d-md-inline-flex"><i class="bi {{ r.event.category_icon }}"></i> {{ r.event.get_category_display }}</span>
+          <span class="status-pill badge-{{ r.event.status }}">{{ r.event.get_status_display }}</span>
+          <span class="meta d-none d-lg-inline">Registered {{ r.registered_at|date:"d M Y" }}</span>
+          {% if r.event.status == 'upcoming' %}
+            <form method="post" action="{% url 'cancel_registration' r.pk %}" onsubmit="return confirm('Cancel your registration for “{{ r.event.title|escapejs }}”?');">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-ghost-danger" type="submit"><i class="bi bi-x-circle"></i> Cancel</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon"><i class="bi bi-ticket-perforated"></i></div>
+      <h3>You haven't registered for any events</h3>
+      <p>Browse upcoming seminars, workshops and fests, and reserve your seat in one click.</p>
+      <a href="{% url 'event_list' %}" class="btn btn-primary">Browse events</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

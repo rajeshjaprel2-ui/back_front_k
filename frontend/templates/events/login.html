@@ -1,0 +1,91 @@
+{% extends "events/base.html" %}
+{% load static %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <aside class="auth-aside">
+    <img src="{% static 'events/img/srinivas-logo.jpeg' %}" alt="Srinivas University" class="logo">
+    <h2>Welcome back to the<br>Events Portal</h2>
+    <p>One place for every seminar, workshop, fest and tournament at Srinivas University.</p>
+    <ul class="feature-list">
+      <li>
+        <i class="bi bi-lightning-charge-fill"></i>
+        <div><strong>One-click registration</strong><span>Reserve your seat instantly.</span></div>
+      </li>
+      <li>
+        <i class="bi bi-bell-fill"></i>
+        <div><strong>Live seat availability</strong><span>Never miss a limited-capacity event.</span></div>
+      </li>
+      <li>
+        <i class="bi bi-shield-check"></i>
+        <div><strong>Admin tools built in</strong><span>Create events, manage participants, export reports.</span></div>
+      </li>
+    </ul>
+  </aside>
+
+  <div class="auth-form">
+    <h1>Sign in</h1>
+    <p class="sub">Use your student or administrator credentials.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+        <div class="input-icon">
+          <i class="bi bi-person"></i>
+          {{ form.username }}
+        </div>
+        {{ form.username.errors }}
+      </div>
+      <div class="mb-4">
+        <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+        <div class="input-icon">
+          <i class="bi bi-lock"></i>
+          {{ form.password }}
+          <button type="button" class="toggle-pass" data-target="{{ form.password.id_for_label }}" aria-label="Show password"><i class="bi bi-eye"></i></button>
+        </div>
+        {{ form.password.errors }}
+      </div>
+      <button class="btn btn-primary btn-lg w-100" type="submit">Sign in <i class="bi bi-arrow-right"></i></button>
+    </form>
+
+    <div class="divider-text">Demo accounts</div>
+    <div class="demo-grid">
+      <button type="button" class="demo-btn" data-user="admin" data-pass="admin123">
+        <span class="stat-icon tint-violet" style="width:34px;height:34px;font-size:1rem"><i class="bi bi-shield-lock"></i></span>
+        <span><strong>Administrator</strong><small>admin / admin123</small></span>
+      </button>
+      <button type="button" class="demo-btn" data-user="rahul" data-pass="student123">
+        <span class="stat-icon tint-blue" style="width:34px;height:34px;font-size:1rem"><i class="bi bi-mortarboard"></i></span>
+        <span><strong>Student</strong><small>rahul / student123</small></span>
+      </button>
+    </div>
+
+    <p class="text-center text-muted small mt-4 mb-0">
+      New student? <a href="{% url 'student_register' %}" class="fw-semibold">Create an account</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll(".toggle-pass").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+  });
+  document.querySelectorAll(".demo-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("{{ form.username.id_for_label }}").value = btn.dataset.user;
+      document.getElementById("{{ form.password.id_for_label }}").value = btn.dataset.pass;
+      document.querySelector(".auth-form form button[type=submit]").focus();
+    });
+  });
+</script>
+{% endblock %}
