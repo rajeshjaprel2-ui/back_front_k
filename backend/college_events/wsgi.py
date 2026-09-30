@@ -14,7 +14,8 @@ from pathlib import Path
 from django.core.wsgi import get_wsgi_application
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "college_events.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project_settings")
 
 application = get_wsgi_application()
