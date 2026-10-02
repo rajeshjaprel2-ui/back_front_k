@@ -2,36 +2,88 @@
 {% load static %}
 {% block title %}Home{% endblock %}
 {% block content %}
-<section class="hero mb-4">
+<section class="hero hero-home mb-4">
   <div class="row g-4 align-items-center">
     <div class="col-lg-7">
       <span class="hero-eyebrow">
         <img src="{% static 'events/img/srinivas-logo.jpeg' %}" alt="">
         Srinivas University · Events Portal
       </span>
-      <h1>Discover, join &amp; manage <span class="highlight">campus events</span> in one place.</h1>
-      <p class="lead">Seminars, workshops, sports and cultural fests — browse what's happening on campus and reserve your seat in seconds.</p>
-      {% if user.is_authenticated %}
-        <div class="d-flex flex-wrap gap-2">
+      <h1>Don't just attend college. <span class="highlight">Live it.</span></h1>
+      <p class="lead">Fests, sports, hackathons and workshops are happening every week on campus. Pick what excites you, grab your seat in one click and make memories that last beyond the classroom.</p>
+      <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'event_list' %}" class="btn btn-white btn-lg"><i class="bi bi-compass"></i> Explore events</a>
+        {% if user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="btn btn-glass btn-lg">Go to dashboard <i class="bi bi-arrow-right"></i></a>
-        </div>
-      {% endif %}
-    </div>
-    <div class="col-lg-5">
+        {% else %}
+          <a href="{% url 'student_register' %}" class="btn btn-glass btn-lg"><i class="bi bi-person-plus"></i> Join free as a student</a>
+        {% endif %}
+      </div>
       <div class="hero-stats">
         <div class="hero-stat">
-          <div class="num">{{ stats.events }}</div>
-          <div class="lbl">Events hosted</div>
+          <div class="num">{{ stats.open }}</div>
+          <div class="lbl">Open right now</div>
         </div>
         <div class="hero-stat">
           <div class="num">{{ stats.students }}</div>
-          <div class="lbl">Students</div>
+          <div class="lbl">Students joined</div>
         </div>
         <div class="hero-stat">
           <div class="num">{{ stats.registrations }}</div>
-          <div class="lbl">Registrations</div>
+          <div class="lbl">Seats booked</div>
         </div>
       </div>
+    </div>
+
+    <div class="col-lg-5">
+      {% if spotlight %}
+        <article class="spotlight cat-{{ spotlight.category }}">
+          <div class="spotlight-top">
+            <span class="spotlight-label"><i class="bi bi-lightning-charge-fill"></i> Next up</span>
+            <span class="type-tag type-{{ spotlight.participation_type }}">
+              <i class="bi {% if spotlight.participation_type == 'solo' %}bi-person{% else %}bi-people{% endif %}"></i>
+              {% if spotlight.participation_type == "team" %}Team{% elif spotlight.participation_type == "both" %}Solo / Team{% else %}Solo{% endif %}
+            </span>
+          </div>
+          <span class="cat-tag"><i class="bi {{ spotlight.category_icon }}"></i> {{ spotlight.get_category_display }}</span>
+          <h2 class="spotlight-title">{{ spotlight.title }}</h2>
+          <ul class="event-meta mb-3">
+            <li><i class="bi bi-calendar3"></i><span>{{ spotlight.date|date:"l, d M Y" }}</span></li>
+            <li><i class="bi bi-clock"></i><span>{{ spotlight.time|time:"g:i A" }}{% if spotlight.end_time %} – {{ spotlight.end_time|time:"g:i A" }}{% endif %}</span></li>
+            <li><i class="bi bi-geo-alt"></i><span>{{ spotlight.venue }}</span></li>
+          </ul>
+
+          <div class="countdown" data-start="{{ spotlight.starts_at|date:'c' }}" data-end="{{ spotlight.ends_at|date:'c' }}">
+            <div class="cd-unit"><strong data-cd="d">--</strong><span>Days</span></div>
+            <div class="cd-unit"><strong data-cd="h">--</strong><span>Hours</span></div>
+            <div class="cd-unit"><strong data-cd="m">--</strong><span>Mins</span></div>
+            <div class="cd-unit"><strong data-cd="s">--</strong><span>Secs</span></div>
+          </div>
+          <div class="countdown-live" hidden><span class="live-dot"></span> Happening now — join in!</div>
+
+          {% with left=spotlight.seats_left pct=spotlight.occupancy_percent %}
+          <div class="seat-row mt-3">
+            <span class="left">{{ spotlight.registered_count }} / {{ spotlight.max_participants }} registered</span>
+            <span class="right {% if pct >= 80 %}low{% endif %}">{% if pct >= 80 %}Only {{ left }} left!{% else %}{{ left }} seats left{% endif %}</span>
+          </div>
+          <div class="bar mb-3 {% if pct >= 80 %}warn{% endif %}"><span style="width: {{ pct }}%"></span></div>
+          {% endwith %}
+
+          {% if spotlight_registered %}
+            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-outline w-100"><i class="bi bi-check-circle-fill text-success"></i> You're registered</a>
+          {% elif user.is_staff %}
+            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary w-100">View event</a>
+          {% else %}
+            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary btn-lg w-100"><i class="bi bi-ticket-perforated"></i> Reserve my seat</a>
+          {% endif %}
+        </article>
+      {% else %}
+        <div class="spotlight spotlight-empty">
+          <div class="empty-icon"><i class="bi bi-calendar-heart"></i></div>
+          <h2 class="spotlight-title">Exciting events are on the way</h2>
+          <p class="text-muted mb-0">Organisers are lining up the next fest. Create your account now so you're first in line when registrations open.</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -39,8 +91,27 @@
 <section class="mb-5">
   <div class="section-head">
     <div>
+      <h2>Find your thing</h2>
+      <p>Whatever you're into, there's a stage for you</p>
+    </div>
+  </div>
+  <div class="cat-grid">
+    {% for c in categories %}
+      <a href="{% url 'event_list' %}?category={{ c.key }}" class="cat-tile cat-{{ c.key }}">
+        <span class="cat-tile-icon"><i class="bi {{ c.icon }}"></i></span>
+        <strong>{{ c.label }}</strong>
+        <small>{{ c.tagline }}</small>
+        <span class="cat-tile-count">{% if c.count %}{{ c.count }} open{% else %}Coming soon{% endif %}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mb-5">
+  <div class="section-head">
+    <div>
       <h2>Happening soon</h2>
-      <p>Upcoming and ongoing events open for participation</p>
+      <p>Seats are limited — register before they fill up</p>
     </div>
     <a href="{% url 'event_list' %}" class="link-arrow">View all events <i class="bi bi-arrow-right"></i></a>
   </div>
@@ -59,12 +130,51 @@
   </div>
 </section>
 
+<section class="mb-5">
+  <div class="section-head">
+    <div>
+      <h2>Why take part?</h2>
+      <p>College is more than lectures and exams</p>
+    </div>
+  </div>
+  <div class="row g-3">
+    <div class="col-sm-6 col-xl-3">
+      <div class="perk-card">
+        <span class="stat-icon tint-blue"><i class="bi bi-lightbulb"></i></span>
+        <h3>Learn real skills</h3>
+        <p>Workshops and seminars teach what textbooks don't — straight from experts and alumni.</p>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="perk-card">
+        <span class="stat-icon tint-amber"><i class="bi bi-trophy"></i></span>
+        <h3>Win &amp; get noticed</h3>
+        <p>Compete, take home prizes and bring glory to your department on the big stage.</p>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="perk-card">
+        <span class="stat-icon tint-rose"><i class="bi bi-people"></i></span>
+        <h3>Make new friends</h3>
+        <p>Team up with students from other courses and years who share your interests.</p>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="perk-card">
+        <span class="stat-icon tint-green"><i class="bi bi-file-earmark-person"></i></span>
+        <h3>Boost your resume</h3>
+        <p>Participation and leadership in events stand out in placements and interviews.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% if completed %}
 <section class="mb-5">
   <div class="section-head">
     <div>
-      <h2>Completed events</h2>
-      <p>Recently concluded events on campus</p>
+      <h2>Recent highlights</h2>
+      <p>Events that already wrapped up — don't miss the next one</p>
     </div>
     <a href="{% url 'event_list' %}?status=completed" class="link-arrow">All completed events <i class="bi bi-arrow-right"></i></a>
   </div>
@@ -75,41 +185,37 @@
   </div>
 </section>
 {% endif %}
+{% endblock %}
 
-{% if not user.is_authenticated %}
-<section>
-  <div class="section-head">
-    <div>
-      <h2>How it works</h2>
-      <p>Get started in three simple steps</p>
-    </div>
-  </div>
-  <div class="row g-3">
-    <div class="col-md-4">
-      <div class="step-card">
-        <span class="step-num">01</span>
-        <div class="stat-icon tint-blue"><i class="bi bi-person-plus"></i></div>
-        <h3>Create your account</h3>
-        <p>Sign up with your roll number, department and year of study.</p>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="step-card">
-        <span class="step-num">02</span>
-        <div class="stat-icon tint-violet"><i class="bi bi-search"></i></div>
-        <h3>Find an event</h3>
-        <p>Filter by category or status and check available seats in real time.</p>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="step-card">
-        <span class="step-num">03</span>
-        <div class="stat-icon tint-green"><i class="bi bi-ticket-perforated"></i></div>
-        <h3>Reserve your seat</h3>
-        <p>Register in one click and track everything from your dashboard.</p>
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
+{% block scripts %}
+<script>
+  (function () {
+    const box = document.querySelector(".countdown");
+    if (!box) return;
+    const start = new Date(box.dataset.start).getTime();
+    const end = new Date(box.dataset.end).getTime();
+    const live = document.querySelector(".countdown-live");
+    const out = {};
+    box.querySelectorAll("[data-cd]").forEach((el) => (out[el.dataset.cd] = el));
+    const pad = (n) => String(n).padStart(2, "0");
+
+    function tick() {
+      const now = Date.now();
+      let diff = Math.max(0, Math.floor((start - now) / 1000));
+      if (diff === 0) {
+        box.hidden = true;
+        live.hidden = now >= end;
+        return now < end;
+      }
+      out.d.textContent = pad(Math.floor(diff / 86400));
+      out.h.textContent = pad(Math.floor((diff % 86400) / 3600));
+      out.m.textContent = pad(Math.floor((diff % 3600) / 60));
+      out.s.textContent = pad(diff % 60);
+      return true;
+    }
+    if (tick()) {
+      const timer = setInterval(() => { if (!tick()) clearInterval(timer); }, 1000);
+    }
+  })();
+</script>
 {% endblock %}

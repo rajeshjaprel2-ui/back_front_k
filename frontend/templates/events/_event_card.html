@@ -50,6 +50,9 @@
           <span style="width: {{ pct }}%"></span>
         </div>
         {% endwith %}
+        {% if event.is_open and not user.is_staff %}
+          <span class="card-cta">Register now <i class="bi bi-arrow-right"></i></span>
+        {% endif %}
       </div>
     </div>
   </article>

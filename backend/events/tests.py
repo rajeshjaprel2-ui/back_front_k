@@ -2,12 +2,80 @@ from datetime import time, timedelta
 
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import DATETIME_LOCAL, EventForm
+from .forms import DATETIME_LOCAL, EventForm, StudentRegisterForm
 from .models import Event, Registration, StudentProfile
+
+
+def signup_data(**overrides):
+    data = {
+        "first_name": "Asha",
+        "last_name": "Rao",
+        "email": "asha@college.edu",
+        "phone": "98450 12345",
+        "roll_number": "bca2024001",
+        "department": "BCA",
+        "year": "2",
+        "username": "asha",
+        "password": "secret12",
+        "confirm_password": "secret12",
+    }
+    data.update(overrides)
+    return data
+
+
+class PosterStorageTests(TestCase):
+    def test_poster_is_stored_in_mongodb_and_served(self):
+        name = default_storage.save("event_posters/test.png", ContentFile(b"\x89PNG-bytes", name="test.png"))
+        try:
+            self.assertTrue(default_storage.exists(name))
+            response = self.client.get(default_storage.url(name))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b"\x89PNG-bytes")
+            self.assertEqual(response["Content-Type"], "image/png")
+        finally:
+            default_storage.delete(name)
+        self.assertFalse(default_storage.exists(name))
+        self.assertEqual(self.client.get(default_storage.url(name)).status_code, 404)
+
+
+class StudentSignupTests(TestCase):
+    def test_signup_creates_profile_and_logs_in(self):
+        response = self.client.post(reverse("student_register"), signup_data())
+        self.assertRedirects(response, reverse("student_dashboard"))
+        profile = StudentProfile.objects.get(user__username="asha")
+        self.assertEqual(profile.phone, "9845012345")
+        self.assertEqual(profile.roll_number, "BCA2024001")
+
+    def test_invalid_phone_and_short_password_are_rejected(self):
+        form = StudentRegisterForm(data=signup_data(phone="12345", password="abc", confirm_password="abc"))
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
+        self.assertIn("password", form.errors)
+
+    def test_roll_number_with_symbols_shows_error_instead_of_crashing(self):
+        response = self.client.post(reverse("student_register"), signup_data(roll_number="BCA(2024"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Use only letters, numbers")
+
+    def test_duplicate_roll_number_is_case_insensitive(self):
+        self.client.post(reverse("student_register"), signup_data())
+        self.client.logout()
+        form = StudentRegisterForm(
+            data=signup_data(roll_number="BCA2024001", username="asha2", email="asha2@college.edu")
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("roll_number", form.errors)
+
+    def test_signup_page_hides_sidebar(self):
+        response = self.client.get(reverse("student_register"))
+        self.assertContains(response, "auth-layout")
+        self.assertNotContains(response, 'id="sidebar"')
 
 
 def form_data(**overrides):

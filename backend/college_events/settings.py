@@ -95,7 +95,11 @@ STATICFILES_DIRS = [FRONTEND_DIR / "static"]
 STATIC_ROOT = PROJECT_ROOT / "staticfiles"
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = PROJECT_ROOT / "media"
+
+STORAGES = {
+    "default": {"BACKEND": "events.storage.GridFSStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django_mongodb_backend.fields.ObjectIdAutoField"
 

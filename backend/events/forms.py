@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import Event, StudentProfile, team_sport_size
 
 PHONE_RE = re.compile(r"^(\+91[\s-]?)?[6-9]\d{9}$")
+ROLL_RE = re.compile(r"^[A-Za-z0-9/-]{3,20}$")
 
 
 class SkyFormMixin:
@@ -36,16 +37,30 @@ class StudentRegisterForm(SkyFormMixin, forms.ModelForm):
     last_name = forms.CharField(max_length=30)
     email = forms.EmailField()
     username = forms.CharField(max_length=150)
-    password = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        min_length=6,
+        error_messages={"min_length": "Password must be at least 6 characters."},
+    )
     confirm_password = forms.CharField(widget=forms.PasswordInput)
 
     class Meta:
         model = StudentProfile
         fields = ["roll_number", "department", "year", "phone"]
+        widgets = {"year": forms.RadioSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._style()
+        self.fields["year"].widget.attrs.pop("class", None)
+        self.fields["year"].choices = StudentProfile.YEAR_CHOICES
+        self.fields["department"].choices = [("", "Select department")] + StudentProfile.DEPARTMENT_CHOICES
+        self.fields["email"].widget.attrs["autocomplete"] = "email"
+        self.fields["username"].widget.attrs["autocomplete"] = "username"
+        self.fields["password"].widget.attrs["autocomplete"] = "new-password"
+        self.fields["confirm_password"].widget.attrs["autocomplete"] = "new-password"
+        self.fields["phone"].widget.input_type = "tel"
+        self.fields["phone"].widget.attrs.update({"inputmode": "numeric", "maxlength": "13"})
         self.fields["first_name"].widget.attrs["placeholder"] = "First name"
         self.fields["last_name"].widget.attrs["placeholder"] = "Last name"
         self.fields["email"].widget.attrs["placeholder"] = "college@email.com"
@@ -67,9 +82,19 @@ class StudentRegisterForm(SkyFormMixin, forms.ModelForm):
             raise forms.ValidationError("This email is already registered.")
         return email
 
+    def clean_phone(self):
+        phone = re.sub(r"[\s-]", "", self.cleaned_data["phone"])
+        if not PHONE_RE.match(phone):
+            raise forms.ValidationError("Enter a valid 10-digit mobile number.")
+        return phone
+
     def clean_roll_number(self):
-        roll = self.cleaned_data["roll_number"]
-        if StudentProfile.objects.filter(roll_number=roll).exists():
+        entered = self.cleaned_data["roll_number"].strip()
+        if not ROLL_RE.match(entered):
+            raise forms.ValidationError("Use only letters, numbers, '/' or '-' (e.g. BCA2024001).")
+        roll = entered.upper()
+        # iexact compiles to an unescaped MongoDB regex, so "(" or "[" in a roll number would crash the query.
+        if StudentProfile.objects.filter(roll_number__in={roll, entered}).exists():
             raise forms.ValidationError("This roll number is already registered.")
         return roll
 

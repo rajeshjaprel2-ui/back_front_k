@@ -1,11 +1,13 @@
 import csv
+import mimetypes
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.files.storage import default_storage
 from django.db.models import Count, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -13,7 +15,18 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from .emails import send_registration_confirmation
 from .forms import EventForm, LoginForm, StudentRegisterForm
-from .models import TEAM_SPORTS, Event, Registration, StudentProfile
+from .models import CATEGORY_ICONS, TEAM_SPORTS, Event, Registration, StudentProfile
+
+
+def media_file(request, name):
+    try:
+        file = default_storage.open(name)
+    except FileNotFoundError:
+        raise Http404("File not found")
+    content_type = getattr(file, "content_type", None) or mimetypes.guess_type(name)[0] or "application/octet-stream"
+    response = HttpResponse(file.read(), content_type=content_type)
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 def is_admin(user):
@@ -42,15 +55,55 @@ def student_required(view_func):
     return wrapper
 
 
+CATEGORY_TAGLINES = {
+    "seminar": "Talks by experts & alumni",
+    "workshop": "Hands-on skill building",
+    "sports": "Compete for your department",
+    "cultural": "Music, dance & drama",
+    "technical": "Coding, quizzes & hackathons",
+    "other": "Clubs, drives & more",
+}
+
+
 def home(request):
-    events = Event.objects.filter(status__in=["upcoming", "ongoing"]).order_by("date", "time")[:6]
+    open_events = Event.objects.filter(status__in=["upcoming", "ongoing"]).order_by("date", "time")
+    events = list(open_events[:6])
+    spotlight = next((e for e in events if e.is_open), None)
+    open_counts = {}
+    for category in open_events.values_list("category", flat=True):
+        open_counts[category] = open_counts.get(category, 0) + 1
+    categories = [
+        {
+            "key": key,
+            "label": label,
+            "icon": CATEGORY_ICONS.get(key, "bi-stars"),
+            "tagline": CATEGORY_TAGLINES.get(key, ""),
+            "count": open_counts.get(key, 0),
+        }
+        for key, label in Event.CATEGORY_CHOICES
+    ]
     completed = Event.objects.filter(status="completed")[:3]
     stats = {
         "events": Event.objects.count(),
+        "open": sum(open_counts.values()),
         "students": StudentProfile.objects.count(),
         "registrations": Registration.objects.count(),
     }
-    return render(request, "events/home.html", {"events": events, "completed": completed, "stats": stats})
+    already = False
+    if spotlight and request.user.is_authenticated and not request.user.is_staff:
+        already = Registration.objects.filter(student=request.user, event=spotlight).exists()
+    return render(
+        request,
+        "events/home.html",
+        {
+            "events": events,
+            "spotlight": spotlight,
+            "spotlight_registered": already,
+            "categories": categories,
+            "completed": completed,
+            "stats": stats,
+        },
+    )
 
 
 def login_view(request):
@@ -214,9 +267,12 @@ def event_create(request):
 @admin_required
 def event_edit(request, pk):
     event = get_object_or_404(Event, pk=pk)
+    old_poster = event.poster.name
     form = EventForm(request.POST or None, request.FILES or None, instance=event)
     if request.method == "POST" and form.is_valid():
         form.save()
+        if old_poster and old_poster != event.poster.name:
+            default_storage.delete(old_poster)
         messages.success(request, "Event details updated.")
         return redirect("event_detail", pk=event.pk)
     return render(
@@ -231,7 +287,10 @@ def event_delete(request, pk):
     event = get_object_or_404(Event, pk=pk)
     if request.method == "POST":
         title = event.title
+        poster = event.poster.name
         event.delete()
+        if poster:
+            default_storage.delete(poster)
         messages.success(request, f'Event "{title}" has been deleted.')
         return redirect("event_list")
     return render(request, "events/event_confirm_delete.html", {"event": event})

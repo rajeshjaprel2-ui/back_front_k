@@ -21,6 +21,14 @@ TEAM_SPORTS = {
     "relay": 4,
 }
 
+CATEGORY_ICONS = {
+    "seminar": "bi-mic",
+    "workshop": "bi-tools",
+    "sports": "bi-trophy",
+    "cultural": "bi-music-note-beamed",
+    "technical": "bi-cpu",
+}
+
 
 def team_sport_size(title):
     """Return the standard squad size if the title names a team sport, else None."""
@@ -169,13 +177,7 @@ class Event(models.Model):
 
     @property
     def category_icon(self):
-        return {
-            "seminar": "bi-mic",
-            "workshop": "bi-tools",
-            "sports": "bi-trophy",
-            "cultural": "bi-music-note-beamed",
-            "technical": "bi-cpu",
-        }.get(self.category, "bi-stars")
+        return CATEGORY_ICONS.get(self.category, "bi-stars")
 
     @property
     def occupancy_percent(self):

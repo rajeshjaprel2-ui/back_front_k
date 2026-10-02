@@ -16,8 +16,8 @@
 </head>
 <body>
 {% with page=request.resolver_match.url_name %}
-<div class="app-shell{% if page == 'login' %} auth-layout{% endif %}">
-  {% if page != 'login' %}
+<div class="app-shell{% if page == 'login' or page == 'student_register' %} auth-layout{% endif %}">
+  {% if page != 'login' and page != 'student_register' %}
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
     <a href="{% url 'home' %}" class="sidebar-brand">
       <img src="{% static 'events/img/srinivas-logo.jpeg' %}" alt="" class="brand-logo">
@@ -85,7 +85,7 @@
 
   <div class="app-main">
     <header class="topbar">
-      {% if page != 'login' %}
+      {% if page != 'login' and page != 'student_register' %}
       <button class="icon-btn d-lg-none" type="button" id="menuBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
         <i class="bi bi-list"></i>
       </button>
@@ -119,6 +119,8 @@
               <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Sign out</a></li>
             </ul>
           </div>
+        {% elif page == 'student_register' %}
+          <a class="btn btn-outline btn-sm" href="{% url 'home' %}"><i class="bi bi-arrow-left"></i> Back to events</a>
         {% elif page != 'login' %}
           <a class="btn btn-outline btn-sm" href="{% url 'login' %}">Sign in</a>
         {% endif %}

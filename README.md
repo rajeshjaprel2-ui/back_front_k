@@ -23,8 +23,8 @@ College event management system/
 │       ├── css/style.css     design system / styling
 │       └── img/              logo and images
 │
-├── media/                    uploaded event posters
-├── db.sqlite3                database file
+├── .env                      MongoDB Atlas connection (MONGODB_URI) — all data, including
+│                             uploaded event posters (GridFS), lives in Atlas
 ├── manage.py                 run commands from here
 ├── requirements.txt
 └── run.bat                   one-click start on Windows

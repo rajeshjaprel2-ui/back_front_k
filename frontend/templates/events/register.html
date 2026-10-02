@@ -1,91 +1,276 @@
 {% extends "events/base.html" %}
+{% load static %}
 {% block title %}Create account{% endblock %}
 {% block content %}
-<div style="max-width: 820px; margin: 0 auto;">
-  <div class="page-header">
-    <div>
-      <h1>Create your student account</h1>
-      <p>It takes less than a minute. You'll be signed in automatically.</p>
-    </div>
+<div class="auth-shell signup-shell">
+  <aside class="auth-aside">
+    <img src="{% static 'events/img/srinivas-logo.jpeg' %}" alt="Srinivas University" class="logo">
+    <h2>Your campus.<br>Your events.<br>Your stage.</h2>
+    <p>Create a free student account and start registering for fests, sports, workshops and seminars at Srinivas University.</p>
+    <ul class="feature-list">
+      <li>
+        <i class="bi bi-ticket-perforated-fill"></i>
+        <div><strong>Reserve seats in one click</strong><span>Solo or with your whole team.</span></div>
+      </li>
+      <li>
+        <i class="bi bi-envelope-check-fill"></i>
+        <div><strong>Instant confirmation</strong><span>Get date, time and venue straight to your inbox.</span></div>
+      </li>
+      <li>
+        <i class="bi bi-calendar-heart-fill"></i>
+        <div><strong>Never miss out</strong><span>Track every event you've joined from your dashboard.</span></div>
+      </li>
+    </ul>
+    <div class="aside-foot"><i class="bi bi-shield-lock"></i> Your details are only shared with event organisers.</div>
+  </aside>
+
+  <div class="auth-form">
+    <h1>Create your student account</h1>
+    <p class="sub">Three quick steps — takes less than a minute.</p>
+
+    <ol class="stepper" aria-label="Sign-up progress">
+      <li class="step" data-step="0"><span class="dot"><i class="bi bi-check-lg"></i><b>1</b></span><span class="lbl">About you</span></li>
+      <li class="step" data-step="1"><span class="dot"><i class="bi bi-check-lg"></i><b>2</b></span><span class="lbl">Academics</span></li>
+      <li class="step" data-step="2"><span class="dot"><i class="bi bi-check-lg"></i><b>3</b></span><span class="lbl">Login</span></li>
+    </ol>
+
+    <form method="post" id="signupForm" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="notice notice-danger mb-3"><i class="bi bi-exclamation-circle-fill"></i> {{ form.non_field_errors|join:" " }}</div>
+      {% endif %}
+
+      <fieldset class="wizard-step" data-step="0">
+        <legend class="visually-hidden">About you</legend>
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="form-label" for="{{ form.first_name.id_for_label }}">First name <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-person"></i>{{ form.first_name }}</div>
+            {{ form.first_name.errors }}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-person"></i>{{ form.last_name }}</div>
+            {{ form.last_name.errors }}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.email.id_for_label }}">College email <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-envelope"></i>{{ form.email }}</div>
+            {{ form.email.errors }}
+            <div class="form-hint">We'll send your event confirmations here.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.phone.id_for_label }}">Mobile number <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-phone"></i>{{ form.phone }}</div>
+            {{ form.phone.errors }}
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="wizard-step" data-step="1">
+        <legend class="visually-hidden">Academics</legend>
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="form-label" for="{{ form.roll_number.id_for_label }}">Roll number <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-person-badge"></i>{{ form.roll_number }}</div>
+            {{ form.roll_number.errors }}
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label" for="{{ form.department.id_for_label }}">Department <span class="req">*</span></label>
+            {{ form.department }}
+            {{ form.department.errors }}
+          </div>
+          <div class="col-12">
+            <span class="form-label d-block" id="yearLabel">Year of study <span class="req">*</span></span>
+            <div class="choice-pills" role="radiogroup" aria-labelledby="yearLabel">
+              {% for radio in form.year %}
+                <input type="radio" name="{{ radio.data.name }}" value="{{ radio.data.value }}" id="{{ radio.id_for_label }}" required {% if radio.data.selected %}checked{% endif %}>
+                <label for="{{ radio.id_for_label }}"><i class="bi bi-mortarboard"></i> {{ radio.choice_label }}</label>
+              {% endfor %}
+            </div>
+            {{ form.year.errors }}
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="wizard-step" data-step="2">
+        <legend class="visually-hidden">Login</legend>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="{{ form.username.id_for_label }}">Username <span class="req">*</span></label>
+            <div class="input-icon"><i class="bi bi-at"></i>{{ form.username }}</div>
+            {{ form.username.errors }}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.password.id_for_label }}">Password <span class="req">*</span></label>
+            <div class="input-icon">
+              <i class="bi bi-lock"></i>{{ form.password }}
+              <button type="button" class="toggle-pass" data-target="{{ form.password.id_for_label }}" aria-label="Show password"><i class="bi bi-eye"></i></button>
+            </div>
+            <div class="strength" id="strength" aria-live="polite"><span></span><span></span><span></span><span></span><small></small></div>
+            {{ form.password.errors }}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.confirm_password.id_for_label }}">Confirm password <span class="req">*</span></label>
+            <div class="input-icon">
+              <i class="bi bi-lock-fill"></i>{{ form.confirm_password }}
+              <button type="button" class="toggle-pass" data-target="{{ form.confirm_password.id_for_label }}" aria-label="Show password"><i class="bi bi-eye"></i></button>
+            </div>
+            <div class="match-hint" id="matchHint" aria-live="polite"></div>
+            {{ form.confirm_password.errors }}
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="wizard-actions">
+        <button type="button" class="btn btn-outline btn-lg" id="prevBtn"><i class="bi bi-arrow-left"></i> Back</button>
+        <button type="button" class="btn btn-primary btn-lg" id="nextBtn">Continue <i class="bi bi-arrow-right"></i></button>
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn"><i class="bi bi-rocket-takeoff"></i> Create my account</button>
+      </div>
+    </form>
+
+    <p class="text-center text-muted small mt-4 mb-0">
+      Already have an account? <a href="{% url 'login' %}" class="fw-semibold">Sign in</a>
+    </p>
   </div>
-
-  <form method="post" class="card-x" novalidate>
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-      <div class="notice notice-danger m-4 mb-0"><i class="bi bi-exclamation-circle-fill"></i> {{ form.non_field_errors|join:" " }}</div>
-    {% endif %}
-
-    <div class="form-section">
-      <div class="form-section-title">
-        <span class="stat-icon tint-blue"><i class="bi bi-person"></i></span>
-        <div><h3>Personal details</h3><p>How organisers can identify and reach you.</p></div>
-      </div>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.first_name.id_for_label }}">First name <span class="req">*</span></label>
-          {{ form.first_name }}{{ form.first_name.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name <span class="req">*</span></label>
-          {{ form.last_name }}{{ form.last_name.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.email.id_for_label }}">Email <span class="req">*</span></label>
-          {{ form.email }}{{ form.email.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.phone.id_for_label }}">Phone <span class="req">*</span></label>
-          {{ form.phone }}{{ form.phone.errors }}
-        </div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">
-        <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
-        <div><h3>Academic details</h3><p>Used for participant lists and certificates.</p></div>
-      </div>
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.roll_number.id_for_label }}">Roll number <span class="req">*</span></label>
-          {{ form.roll_number }}{{ form.roll_number.errors }}
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label" for="{{ form.department.id_for_label }}">Department <span class="req">*</span></label>
-          {{ form.department }}{{ form.department.errors }}
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label" for="{{ form.year.id_for_label }}">Year <span class="req">*</span></label>
-          {{ form.year }}{{ form.year.errors }}
-        </div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">
-        <span class="stat-icon tint-green"><i class="bi bi-shield-lock"></i></span>
-        <div><h3>Login credentials</h3><p>You'll use these to sign in to the portal.</p></div>
-      </div>
-      <div class="row g-3">
-        <div class="col-12">
-          <label class="form-label" for="{{ form.username.id_for_label }}">Username <span class="req">*</span></label>
-          {{ form.username }}{{ form.username.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.password.id_for_label }}">Password <span class="req">*</span></label>
-          {{ form.password }}{{ form.password.errors }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="{{ form.confirm_password.id_for_label }}">Confirm password <span class="req">*</span></label>
-          {{ form.confirm_password }}{{ form.confirm_password.errors }}
-        </div>
-      </div>
-    </div>
-
-    <div class="form-actions justify-content-between align-items-center">
-      <span class="small text-muted">Already registered? <a href="{% url 'login' %}" class="fw-semibold">Sign in</a></span>
-      <button class="btn btn-primary" type="submit">Create account <i class="bi bi-arrow-right"></i></button>
-    </div>
-  </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById("signupForm");
+    const steps = [...form.querySelectorAll(".wizard-step")];
+    const dots = [...document.querySelectorAll(".stepper .step")];
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const password = document.getElementById("{{ form.password.id_for_label }}");
+    const confirm = document.getElementById("{{ form.confirm_password.id_for_label }}");
+    const phone = document.getElementById("{{ form.phone.id_for_label }}");
+    const phoneRe = /^(\+91[\s-]?)?[6-9]\d{9}$/;
+    let current = 0;
+
+    form.classList.add("wizard-on");
+
+    function show(i) {
+      current = i;
+      steps.forEach((s, n) => (s.hidden = n !== i));
+      dots.forEach((d, n) => {
+        d.classList.toggle("active", n === i);
+        d.classList.toggle("done", n < i);
+      });
+      prevBtn.hidden = i === 0;
+      nextBtn.hidden = i === steps.length - 1;
+      submitBtn.hidden = i !== steps.length - 1;
+      const first = steps[i].querySelector("input:not([type=hidden]), select");
+      if (first && document.activeElement !== document.body) first.focus();
+    }
+
+    function clearError(field) {
+      field.classList.remove("is-invalid");
+      const wrap = field.closest(".col-12, .col-sm-6");
+      wrap?.querySelectorAll(".errorlist").forEach((el) => el.remove());
+    }
+
+    function setError(field, message) {
+      clearError(field);
+      field.classList.add("is-invalid");
+      const wrap = field.closest(".col-12, .col-sm-6");
+      const ul = document.createElement("ul");
+      ul.className = "errorlist client-error";
+      ul.innerHTML = "<li></li>";
+      ul.firstChild.textContent = message;
+      wrap.appendChild(ul);
+    }
+
+    function messageFor(field) {
+      if (field.type === "radio") return field.checked || form.querySelector(`input[name="${field.name}"]:checked`) ? "" : "Please choose your year of study.";
+      if (field.validity.valueMissing) return "This field is required.";
+      if (field.validity.typeMismatch) return "Enter a valid email address.";
+      if (field.validity.tooShort) return `Must be at least ${field.minLength} characters.`;
+      if (field === phone && !phoneRe.test(field.value.replace(/[\s-]/g, ""))) return "Enter a valid 10-digit mobile number.";
+      if (field === confirm && field.value !== password.value) return "Passwords do not match.";
+      return "";
+    }
+
+    function validateStep(i) {
+      let firstBad = null;
+      const seenRadio = new Set();
+      steps[i].querySelectorAll("input:not([type=hidden]), select").forEach((field) => {
+        if (field.type === "radio") {
+          if (seenRadio.has(field.name)) return;
+          seenRadio.add(field.name);
+        }
+        const msg = messageFor(field);
+        const target = field.type === "radio" ? field.closest(".choice-pills") : field;
+        if (msg) {
+          setError(target, msg);
+          firstBad = firstBad || field;
+        } else {
+          clearError(target);
+        }
+      });
+      firstBad?.focus();
+      return !firstBad;
+    }
+
+    nextBtn.addEventListener("click", () => { if (validateStep(current)) show(current + 1); });
+    prevBtn.addEventListener("click", () => show(current - 1));
+    form.addEventListener("submit", (e) => {
+      for (let i = 0; i < steps.length; i++) {
+        if (!validateStep(i)) { e.preventDefault(); show(i); return; }
+      }
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account…';
+    });
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.tagName === "INPUT" && current < steps.length - 1) {
+        e.preventDefault();
+        nextBtn.click();
+      }
+    });
+    form.addEventListener("input", (e) => {
+      const target = e.target.type === "radio" ? e.target.closest(".choice-pills") : e.target;
+      if (target.classList.contains("is-invalid") && !messageFor(e.target)) clearError(target);
+    });
+
+    const strength = document.getElementById("strength");
+    const labels = ["Too short", "Weak", "Okay", "Good", "Strong"];
+    password.addEventListener("input", () => {
+      const v = password.value;
+      let score = 0;
+      if (v.length >= 6) score++;
+      if (v.length >= 10) score++;
+      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+      if (/\d/.test(v) && /[^A-Za-z0-9]/.test(v)) score++;
+      if (v.length < 6) score = 0;
+      strength.dataset.score = v ? score : "";
+      strength.querySelector("small").textContent = v ? labels[score] : "";
+      updateMatch();
+    });
+
+    const matchHint = document.getElementById("matchHint");
+    function updateMatch() {
+      if (!confirm.value) { matchHint.textContent = ""; matchHint.className = "match-hint"; return; }
+      const ok = confirm.value === password.value;
+      matchHint.className = "match-hint " + (ok ? "ok" : "bad");
+      matchHint.innerHTML = ok ? '<i class="bi bi-check-circle-fill"></i> Passwords match' : '<i class="bi bi-x-circle-fill"></i> Passwords do not match yet';
+    }
+    confirm.addEventListener("input", updateMatch);
+
+    document.querySelectorAll(".toggle-pass").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.target);
+        const reveal = input.type === "password";
+        input.type = reveal ? "text" : "password";
+        btn.innerHTML = reveal ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        btn.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+      });
+    });
+
+    const firstServerError = steps.findIndex((s) => s.querySelector(".is-invalid, .errorlist"));
+    show(firstServerError === -1 ? 0 : firstServerError);
+  })();
+</script>
 {% endblock %}
