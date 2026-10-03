@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .emails import send_registration_confirmation, send_welcome_email
+from .emails import send_login_alert, send_registration_confirmation, send_welcome_email
 from .forms import EventForm, LoginForm, StudentRegisterForm
 from .models import CATEGORY_ICONS, TEAM_SPORTS, Event, Registration, StudentProfile
 
@@ -122,6 +122,8 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Welcome back, {user.get_full_name() or user.username}!")
+            if not user.is_staff:
+                send_login_alert(user, request)
             next_url = request.POST.get("next") or request.GET.get("next")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()

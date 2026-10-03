@@ -95,6 +95,22 @@ class StudentSignupTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("roll_number", form.errors)
 
+    def test_student_login_sends_alert_but_admin_login_does_not(self):
+        student = User.objects.create_user("stu", email="stu@college.edu", password="secret12", first_name="Stu")
+        User.objects.create_user("boss", email="boss@college.edu", password="secret12", is_staff=True)
+        self.client.post(
+            reverse("login"), {"username": "stu", "password": "secret12"},
+            HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        alert = mail.outbox[0]
+        self.assertEqual(alert.to, [student.email])
+        self.assertIn("New sign-in", alert.subject)
+        self.assertIn("Google Chrome on Windows", alert.body)
+        self.client.logout()
+        self.client.post(reverse("login"), {"username": "boss", "password": "secret12"})
+        self.assertEqual(len(mail.outbox), 1)
+
     def test_signup_page_hides_sidebar(self):
         response = self.client.get(reverse("student_register"))
         self.assertContains(response, "auth-layout")

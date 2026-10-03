@@ -12,13 +12,28 @@ LOGO_PATH = settings.FRONTEND_DIR / "static" / "events" / "img" / "srinivas-logo
 LOGO_CID = "srinivas-logo"
 
 
+def _send_branded(subject, text, template, context, to):
+    """Send a plain-text email with an HTML version that embeds the university logo."""
+    html = render_to_string(template, {**context, "site_url": settings.SITE_URL, "logo_cid": LOGO_CID})
+    message = EmailMultiAlternatives(subject=subject, body=text, from_email=settings.DEFAULT_FROM_EMAIL, to=[to])
+    message.mixed_subtype = "related"
+    message.attach_alternative(html, "text/html")
+    with open(LOGO_PATH, "rb") as fh:
+        logo = MIMEImage(fh.read())
+    logo.add_header("Content-ID", f"<{LOGO_CID}>")
+    logo.add_header("Content-Disposition", "inline", filename="srinivas-logo.jpeg")
+    message.attach(logo)
+    message.send()
+
+
 def send_welcome_email(user):
     """Thank a newly signed-up student and confirm their account details. Returns True if sent."""
     if not user.email:
         return False
+    name = user.get_full_name() or user.username
     signed_up = timezone.localtime(user.date_joined).strftime("%d %B %Y, %I:%M %p")
     lines = [
-        f"Dear {user.get_full_name() or user.username},",
+        f"Dear {name},",
         "",
         "Thank you for signing up with Srinivas University Events! We're excited to have you on board "
         "and can't wait to help you explore the seminars, workshops, sports and cultural events happening on campus.",
@@ -32,35 +47,76 @@ def send_welcome_email(user):
         "",
         "Srinivas University Events Team",
     ]
-    name = user.get_full_name() or user.username
-    html = render_to_string(
-        "events/emails/welcome.html",
-        {
-            "name": name,
-            "email": user.email,
-            "username": user.username,
-            "signed_up": signed_up,
-            "site_url": settings.SITE_URL,
-            "logo_cid": LOGO_CID,
-        },
-    )
-    message = EmailMultiAlternatives(
-        subject="Welcome to Srinivas University Events!",
-        body="\n".join(lines),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
-    )
-    message.mixed_subtype = "related"
-    message.attach_alternative(html, "text/html")
-    with open(LOGO_PATH, "rb") as fh:
-        logo = MIMEImage(fh.read())
-    logo.add_header("Content-ID", f"<{LOGO_CID}>")
-    logo.add_header("Content-Disposition", "inline", filename="srinivas-logo.jpeg")
-    message.attach(logo)
     try:
-        message.send()
+        _send_branded(
+            "Welcome to Srinivas University Events!",
+            "\n".join(lines),
+            "events/emails/welcome.html",
+            {"name": name, "email": user.email, "username": user.username, "signed_up": signed_up},
+            user.email,
+        )
     except Exception:
         logger.exception("Could not send welcome email to %s", user.email)
+        return False
+    return True
+
+
+def _describe_device(user_agent):
+    ua = user_agent or ""
+    browser = next(
+        (name for key, name in [("Edg/", "Microsoft Edge"), ("OPR/", "Opera"), ("Chrome/", "Google Chrome"),
+                                ("Firefox/", "Mozilla Firefox"), ("Safari/", "Safari")] if key in ua),
+        "Unknown browser",
+    )
+    system = next(
+        (name for key, name in [("Android", "Android"), ("iPhone", "iPhone"), ("iPad", "iPad"), ("Windows", "Windows"),
+                                ("Mac OS X", "macOS"), ("Linux", "Linux")] if key in ua),
+        "Unknown device",
+    )
+    return f"{browser} on {system}"
+
+
+def _client_ip(request):
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "") or "Unknown"
+
+
+def send_login_alert(user, request):
+    """Tell a student that their account was just signed in to. Returns True if sent."""
+    if not user.email:
+        return False
+    name = user.get_full_name() or user.username
+    signed_in = timezone.localtime().strftime("%d %B %Y, %I:%M %p")
+    device = _describe_device(request.META.get("HTTP_USER_AGENT"))
+    ip = _client_ip(request)
+    lines = [
+        f"Dear {name},",
+        "",
+        "You have successfully signed in to your Srinivas University Events account.",
+        "",
+        "Sign-in Details",
+        f"  Email      : {user.email}",
+        f"  Username   : {user.username}",
+        f"  Time       : {signed_in}",
+        f"  Device     : {device}",
+        f"  IP address : {ip}",
+        "",
+        "If this was you, no action is needed. If you don't recognise this sign-in, "
+        "please contact the events administrator immediately.",
+        "",
+        "Srinivas University Events Team",
+    ]
+    try:
+        _send_branded(
+            "New sign-in to your Srinivas University Events account",
+            "\n".join(lines),
+            "events/emails/login_alert.html",
+            {"name": name, "email": user.email, "username": user.username,
+             "signed_in": signed_in, "device": device, "ip": ip},
+            user.email,
+        )
+    except Exception:
+        logger.exception("Could not send login alert to %s", user.email)
         return False
     return True
 
