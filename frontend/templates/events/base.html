@@ -41,9 +41,11 @@
           <i class="bi bi-house-door"></i> Home
         </a>
       {% endif %}
-      <a class="side-link {% if page == 'event_list' and request.GET.status != 'completed' or page == 'event_detail' %}active{% endif %}" href="{% url 'event_list' %}">
-        <i class="bi bi-calendar2-event"></i> Browse Events
-      </a>
+      {% if not user.is_staff %}
+        <a class="side-link {% if page == 'event_list' and request.GET.status != 'completed' or page == 'event_detail' %}active{% endif %}" href="{% url 'event_list' %}">
+          <i class="bi bi-calendar2-event"></i> Browse Events
+        </a>
+      {% endif %}
       <a class="side-link {% if page == 'event_list' and request.GET.status == 'completed' %}active{% endif %}" href="{% url 'event_list' %}?status=completed">
         <i class="bi bi-calendar2-check"></i> Completed Events
       </a>
@@ -55,14 +57,8 @@
 
       {% if user.is_staff %}
         <div class="nav-section">Administration</div>
-        <a class="side-link {% if page == 'event_create' or page == 'event_edit' %}active{% endif %}" href="{% url 'event_create' %}">
-          <i class="bi bi-plus-square"></i> Create Event
-        </a>
         <a class="side-link {% if page == 'participants' or page == 'event_delete' %}active{% endif %}" href="{% url 'reports' %}#all-events">
           <i class="bi bi-people"></i> Participants
-        </a>
-        <a class="side-link {% if page == 'student_list' %}active{% endif %}" href="{% url 'student_list' %}">
-          <i class="bi bi-mortarboard"></i> Students
         </a>
         <a class="side-link {% if page == 'reports' %}active{% endif %}" href="{% url 'reports' %}">
           <i class="bi bi-bar-chart-line"></i> Reports

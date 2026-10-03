@@ -129,6 +129,8 @@ LOGIN_ALERT_ROLES = {
 }
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "noreply@college.edu"
 
+AUTHENTICATION_BACKENDS = ["events.backends.UsernameOrEmailBackend"]
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"

@@ -178,7 +178,7 @@ class LoginForm(SkyFormMixin, forms.Form):
         super().__init__(*args, **kwargs)
         self._style()
         self.fields["username"].widget.attrs.update(
-            {"placeholder": "Enter your username", "autocomplete": "username", "autofocus": True}
+            {"placeholder": "Enter your username or email", "autocomplete": "username", "autofocus": True}
         )
         self.fields["password"].widget.attrs.update(
             {"placeholder": "Enter your password", "autocomplete": "current-password"}

@@ -135,7 +135,7 @@ def login_view(request):
             ):
                 return redirect(next_url)
             return redirect("dashboard")
-        messages.error(request, "Invalid username or password.")
+        messages.error(request, "Invalid username/email or password.")
     return render(request, "events/login.html", {"form": form, "next": request.GET.get("next", "")})
 
 
