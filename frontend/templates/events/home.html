@@ -11,14 +11,6 @@
       </span>
       <h1>Don't just attend college. <span class="highlight">Live it.</span></h1>
       <p class="lead">Fests, sports, hackathons and workshops are happening every week on campus. Pick what excites you, grab your seat in one click and make memories that last beyond the classroom.</p>
-      <div class="d-flex flex-wrap gap-2 mb-4">
-        <a href="{% url 'event_list' %}" class="btn btn-white btn-lg"><i class="bi bi-compass"></i> Explore events</a>
-        {% if user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="btn btn-glass btn-lg">Go to dashboard <i class="bi bi-arrow-right"></i></a>
-        {% else %}
-          <a href="{% url 'student_register' %}" class="btn btn-glass btn-lg"><i class="bi bi-person-plus"></i> Join free as a student</a>
-        {% endif %}
-      </div>
       <div class="hero-stats">
         <div class="hero-stat">
           <div class="num">{{ stats.open }}</div>
@@ -85,18 +77,34 @@
               {% endif %}
             </article>
             {% endfor %}
+            <article class="spotlight slide spotlight-soon" aria-roledescription="slide" aria-label="Coming soon" hidden>
+              <div class="spotlight-top">
+                <span class="spotlight-label soon"><i class="bi bi-calendar-event"></i> Coming soon</span>
+                <span class="soon-sparkle"><i class="bi bi-stars"></i></span>
+              </div>
+              <h2 class="spotlight-title">More events are on the way</h2>
+              <p class="soon-text">New fests, hackathons and sports meets are being lined up. Pick a category to see what's planned.</p>
+              <div class="soon-grid">
+                {% for c in categories %}
+                  <a href="{% url 'event_list' %}?category={{ c.key }}" class="soon-tile cat-{{ c.key }}">
+                    <span class="soon-tile-icon"><i class="bi {{ c.icon }}"></i></span>
+                    <span class="soon-tile-label">{{ c.label|cut:" Event" }}</span>
+                  </a>
+                {% endfor %}
+              </div>
+            </article>
           </div>
-          {% if spotlights|length > 1 %}
           <div class="slider-nav">
             <button type="button" class="slider-btn" data-dir="-1" aria-label="Previous event"><i class="bi bi-chevron-left"></i></button>
             <div class="slider-dots">
               {% for spotlight in spotlights %}
                 <button type="button" class="slider-dot{% if forloop.first %} active{% endif %}" data-index="{{ forloop.counter0 }}" aria-label="Show {{ spotlight.title }}"></button>
               {% endfor %}
+              <button type="button" class="slider-dot" data-index="{{ spotlights|length }}" aria-label="Show coming soon"></button>
             </div>
+            <span class="slider-count" aria-live="polite">1 / {{ spotlights|length|add:1 }}</span>
             <button type="button" class="slider-btn" data-dir="1" aria-label="Next event"><i class="bi bi-chevron-right"></i></button>
           </div>
-          {% endif %}
         </div>
       {% else %}
         <div class="spotlight spotlight-empty">
@@ -248,24 +256,34 @@
     const slides = slider ? [...slider.querySelectorAll(".slide")] : [];
     if (slides.length < 2) return;
     const dots = [...slider.querySelectorAll(".slider-dot")];
+    const counter = slider.querySelector(".slider-count");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const SLIDE_MS = 5000;
+    slider.style.setProperty("--slide-ms", SLIDE_MS + "ms");
     let current = 0;
-    let timer = null;
 
     function go(i) {
       current = (i + slides.length) % slides.length;
       slides.forEach((s, n) => (s.hidden = n !== current));
       dots.forEach((d, n) => {
-        d.classList.toggle("active", n === current);
+        d.classList.remove("active", "paused");
+        d.classList.toggle("static", reduceMotion);
         d.setAttribute("aria-current", n === current ? "true" : "false");
       });
+      void dots[current].offsetWidth;
+      dots[current].classList.add("active");
+      if (counter) counter.textContent = `${current + 1} / ${slides.length}`;
     }
-    function play() {
-      if (reduceMotion) return;
-      stop();
-      timer = setInterval(() => go(current + 1), 5000);
-    }
-    function stop() { clearInterval(timer); }
+    function play() { dots[current].classList.remove("paused"); }
+    function stop() { dots[current].classList.add("paused"); }
+
+    dots.forEach((dot) =>
+      dot.addEventListener("animationend", () => {
+        if (reduceMotion || !dot.classList.contains("active")) return;
+        go(current + 1);
+      })
+    );
+    if (reduceMotion) dots.forEach((d) => d.classList.add("static"));
 
     slider.querySelectorAll(".slider-btn").forEach((btn) =>
       btn.addEventListener("click", () => { go(current + Number(btn.dataset.dir)); play(); })
