@@ -11,6 +11,27 @@ PHONE_RE = re.compile(r"^(\+91[\s-]?)?[6-9]\d{9}$")
 ROLL_RE = re.compile(r"^[A-Za-z0-9/-]{3,20}$")
 
 
+def _clean_student_phone(value):
+    phone = re.sub(r"[\s-]", "", value)
+    if not PHONE_RE.match(phone):
+        raise forms.ValidationError("Enter a valid 10-digit mobile number.")
+    return phone
+
+
+def _clean_roll_number(value, exclude_pk=None):
+    entered = value.strip()
+    if not ROLL_RE.match(entered):
+        raise forms.ValidationError("Use only letters, numbers, '/' or '-' (e.g. BCA2024001).")
+    roll = entered.upper()
+    # iexact compiles to an unescaped MongoDB regex, so "(" or "[" in a roll number would crash the query.
+    taken = StudentProfile.objects.filter(roll_number__in={roll, entered})
+    if exclude_pk:
+        taken = taken.exclude(pk=exclude_pk)
+    if taken.exists():
+        raise forms.ValidationError("This roll number is already registered.")
+    return roll
+
+
 class SkyFormMixin:
     def _style(self):
         for field in self.fields.values():
@@ -83,20 +104,10 @@ class StudentRegisterForm(SkyFormMixin, forms.ModelForm):
         return email
 
     def clean_phone(self):
-        phone = re.sub(r"[\s-]", "", self.cleaned_data["phone"])
-        if not PHONE_RE.match(phone):
-            raise forms.ValidationError("Enter a valid 10-digit mobile number.")
-        return phone
+        return _clean_student_phone(self.cleaned_data["phone"])
 
     def clean_roll_number(self):
-        entered = self.cleaned_data["roll_number"].strip()
-        if not ROLL_RE.match(entered):
-            raise forms.ValidationError("Use only letters, numbers, '/' or '-' (e.g. BCA2024001).")
-        roll = entered.upper()
-        # iexact compiles to an unescaped MongoDB regex, so "(" or "[" in a roll number would crash the query.
-        if StudentProfile.objects.filter(roll_number__in={roll, entered}).exists():
-            raise forms.ValidationError("This roll number is already registered.")
-        return roll
+        return _clean_roll_number(self.cleaned_data["roll_number"])
 
     def clean(self):
         cleaned = super().clean()
@@ -117,6 +128,46 @@ class StudentRegisterForm(SkyFormMixin, forms.ModelForm):
         if commit:
             profile.save()
         return profile
+
+
+class UserEditForm(SkyFormMixin, forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "username", "email"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].required = True
+        self._style()
+
+    def clean_username(self):
+        username = self.cleaned_data["username"]
+        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("This username is already taken.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data["email"]
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("This email is already registered.")
+        return email
+
+
+class StudentProfileEditForm(SkyFormMixin, forms.ModelForm):
+    class Meta:
+        model = StudentProfile
+        fields = ["roll_number", "department", "year", "phone"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+        self.fields["phone"].widget.input_type = "tel"
+
+    def clean_phone(self):
+        return _clean_student_phone(self.cleaned_data["phone"])
+
+    def clean_roll_number(self):
+        return _clean_roll_number(self.cleaned_data["roll_number"], exclude_pk=self.instance.pk)
 
 
 class LoginForm(SkyFormMixin, forms.Form):

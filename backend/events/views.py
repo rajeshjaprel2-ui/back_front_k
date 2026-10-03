@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .emails import send_login_alert, send_registration_confirmation, send_welcome_email
-from .forms import EventForm, LoginForm, StudentRegisterForm
+from .forms import EventForm, LoginForm, StudentProfileEditForm, StudentRegisterForm, UserEditForm
 from .models import CATEGORY_ICONS, TEAM_SPORTS, Event, Registration, StudentProfile
 
 
@@ -575,6 +575,67 @@ def user_monitoring(request, role):
             "summary": [{"key": key, **info, "count": counts[key]} for key, info in ACTIVITY_LEVELS.items()],
             "status": status,
             "q": q,
+        },
+    )
+
+
+def _monitor_url(user):
+    return reverse("monitor_admins" if user.is_staff else "monitor_students")
+
+
+def _managed_user(request, pk):
+    """Fetch a user the current admin may change; superusers can only be changed by superusers."""
+    target = get_object_or_404(User, pk=pk)
+    if target.is_superuser and not request.user.is_superuser:
+        messages.error(request, "Only a superuser can change another superuser's account.")
+        return None
+    return target
+
+
+@admin_required
+def user_edit(request, pk):
+    target = _managed_user(request, pk)
+    if target is None:
+        return redirect("monitor_admins")
+    profile = None if target.is_staff else getattr(target, "profile", None)
+    form = UserEditForm(request.POST or None, instance=target)
+    profile_form = StudentProfileEditForm(request.POST or None, instance=profile) if profile else None
+    if request.method == "POST" and form.is_valid() and (profile_form is None or profile_form.is_valid()):
+        form.save()
+        if profile_form:
+            profile_form.save()
+        messages.success(request, f"Account for {target.get_full_name() or target.username} updated.")
+        return redirect(_monitor_url(target))
+    return render(
+        request,
+        "events/user_form.html",
+        {"target": target, "form": form, "profile_form": profile_form, "back_url": _monitor_url(target)},
+    )
+
+
+@admin_required
+def user_delete(request, pk):
+    target = _managed_user(request, pk)
+    if target is None:
+        return redirect("monitor_admins")
+    back_url = _monitor_url(target)
+    if target.pk == request.user.pk:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect(back_url)
+    if request.method == "POST":
+        name = target.get_full_name() or target.username
+        Event.objects.filter(created_by=target).update(created_by=request.user)
+        target.delete()
+        messages.success(request, f"Account for {name} has been deleted.")
+        return redirect(back_url)
+    return render(
+        request,
+        "events/user_confirm_delete.html",
+        {
+            "target": target,
+            "reg_count": Registration.objects.filter(student=target).count(),
+            "event_count": Event.objects.filter(created_by=target).count(),
+            "back_url": back_url,
         },
     )
 

@@ -1,0 +1,78 @@
+{% extends "events/base.html" %}
+{% block title %}Edit {{ target.get_full_name|default:target.username }}{% endblock %}
+{% block content %}
+<div style="max-width: 880px; margin: 0 auto;">
+  <nav class="breadcrumb-lite" aria-label="Breadcrumb">
+    <a href="{{ back_url }}">{% if target.is_staff %}Admin{% else %}Student{% endif %} monitoring</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Edit account</span>
+  </nav>
+
+  <div class="page-header">
+    <div>
+      <h1>Edit {% if target.is_staff %}admin{% else %}student{% endif %} account</h1>
+      <p>Update the details for {{ target.get_full_name|default:target.username }}.</p>
+    </div>
+  </div>
+
+  <form method="post" class="card-x" novalidate>
+    {% csrf_token %}
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-blue"><i class="bi bi-person-vcard"></i></span>
+        <div><h3>Account details</h3><p>Name, username and email used to sign in.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.first_name.id_for_label }}">First name</label>
+          {{ form.first_name }}{{ form.first_name.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name</label>
+          {{ form.last_name }}{{ form.last_name.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.username.id_for_label }}">Username <span class="req">*</span></label>
+          {{ form.username }}{{ form.username.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ form.email.id_for_label }}">Email <span class="req">*</span></label>
+          {{ form.email }}{{ form.email.errors }}
+        </div>
+      </div>
+    </div>
+
+    {% if profile_form %}
+    <div class="form-section">
+      <div class="form-section-title">
+        <span class="stat-icon tint-violet"><i class="bi bi-mortarboard"></i></span>
+        <div><h3>Student details</h3><p>Roll number, course and contact number.</p></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="{{ profile_form.roll_number.id_for_label }}">Roll number <span class="req">*</span></label>
+          {{ profile_form.roll_number }}{{ profile_form.roll_number.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ profile_form.phone.id_for_label }}">Phone <span class="req">*</span></label>
+          {{ profile_form.phone }}{{ profile_form.phone.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ profile_form.department.id_for_label }}">Department <span class="req">*</span></label>
+          {{ profile_form.department }}{{ profile_form.department.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="{{ profile_form.year.id_for_label }}">Year <span class="req">*</span></label>
+          {{ profile_form.year }}{{ profile_form.year.errors }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <a href="{{ back_url }}" class="btn btn-outline">Cancel</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> Save changes</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "events/base.html" %}
+{% block title %}Delete Account{% endblock %}
+{% block content %}
+<div class="card-x confirm-card">
+  <div class="confirm-icon"><i class="bi bi-person-x"></i></div>
+  <h1 class="h4 fw-bold mb-2">Delete this {% if target.is_staff %}admin{% else %}student{% endif %} account?</h1>
+  <p class="text-muted mb-1"><strong class="text-dark">{{ target.get_full_name|default:target.username }}</strong> · {{ target.email|default:target.username }}</p>
+  <p class="text-muted small mb-4">
+    {% if target.is_staff %}
+      They will no longer be able to sign in.
+      {% if event_count %}The <strong>{{ event_count }} event{{ event_count|pluralize }}</strong> they created will be transferred to you.{% endif %}
+    {% else %}
+      This permanently removes the student's profile and
+      <strong>{{ reg_count }} event registration{{ reg_count|pluralize }}</strong>.
+    {% endif %}
+    This action cannot be undone.
+  </p>
+  <form method="post" class="d-flex gap-2 justify-content-center">
+    {% csrf_token %}
+    <a href="{{ back_url }}" class="btn btn-outline">Keep account</a>
+    <button class="btn btn-danger" type="submit"><i class="bi bi-trash3"></i> Delete permanently</button>
+  </form>
+</div>
+{% endblock %}

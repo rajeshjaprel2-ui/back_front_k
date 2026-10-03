@@ -39,4 +39,6 @@ urlpatterns = [
     path("students/", views.student_list, name="student_list"),
     path("monitoring/admins/", views.user_monitoring, {"role": "admins"}, name="monitor_admins"),
     path("monitoring/students/", views.user_monitoring, {"role": "students"}, name="monitor_students"),
+    path("monitoring/users/<objectid:pk>/edit/", views.user_edit, name="user_edit"),
+    path("monitoring/users/<objectid:pk>/delete/", views.user_delete, name="user_delete"),
 ]

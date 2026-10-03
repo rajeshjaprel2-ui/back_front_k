@@ -173,6 +173,66 @@ class UserMonitoringTests(TestCase):
         self.assertContains(never, '<td class="mono">idle_admin</td>')
         self.assertNotContains(never, '<td class="mono">boss</td>')
 
+    def test_admin_can_edit_student_and_admin_accounts(self):
+        boss = User.objects.create_user("boss", email="boss@college.edu", password="x", is_staff=True)
+        other = User.objects.create_user("other", email="other@college.edu", password="x", is_staff=True)
+        self.client.post(reverse("student_register"), signup_data())
+        asha = User.objects.get(username="asha")
+        self.client.force_login(boss)
+
+        page = self.client.get(reverse("monitor_students"))
+        self.assertContains(page, reverse("user_edit", args=[asha.pk]))
+        self.assertContains(page, reverse("user_delete", args=[asha.pk]))
+
+        data = signup_data(first_name="Asha", last_name="Kumar", phone="98450 99999", roll_number="bca2024777")
+        response = self.client.post(reverse("user_edit", args=[asha.pk]), data)
+        self.assertRedirects(response, reverse("monitor_students"))
+        asha.refresh_from_db()
+        self.assertEqual(asha.last_name, "Kumar")
+        self.assertEqual(asha.profile.phone, "9845099999")
+        self.assertEqual(asha.profile.roll_number, "BCA2024777")
+
+        taken = self.client.post(reverse("user_edit", args=[other.pk]), {"username": "other", "email": "boss@college.edu"})
+        self.assertContains(taken, "This email is already registered.")
+        response = self.client.post(
+            reverse("user_edit", args=[other.pk]), {"first_name": "Ola", "username": "other", "email": "other@college.edu"}
+        )
+        self.assertRedirects(response, reverse("monitor_admins"))
+        self.assertEqual(User.objects.get(pk=other.pk).first_name, "Ola")
+
+    def test_admin_can_delete_users_but_not_self(self):
+        boss = User.objects.create_user("boss", password="x", is_staff=True)
+        old_admin = User.objects.create_user("old", password="x", is_staff=True)
+        event = Event.objects.create(
+            title="Talk", description="d", category="seminar", venue="v",
+            date=timezone.localdate() + timedelta(days=1), time=time(10, 0), created_by=old_admin,
+        )
+        stu = User.objects.create_user("stu", password="x")
+        StudentProfile.objects.create(user=stu, roll_number="BCA1", department="BCA", year="1", phone="9845012345")
+        Registration.objects.create(student=stu, event=event)
+        self.client.force_login(boss)
+
+        self.assertContains(self.client.get(reverse("user_delete", args=[stu.pk])), "1 event registration")
+        self.assertRedirects(self.client.post(reverse("user_delete", args=[stu.pk])), reverse("monitor_students"))
+        self.assertFalse(User.objects.filter(pk=stu.pk).exists())
+        self.assertFalse(Registration.objects.filter(event=event).exists())
+
+        self.client.post(reverse("user_delete", args=[old_admin.pk]))
+        self.assertFalse(User.objects.filter(pk=old_admin.pk).exists())
+        event.refresh_from_db()
+        self.assertEqual(event.created_by, boss)
+
+        self.client.post(reverse("user_delete", args=[boss.pk]))
+        self.assertTrue(User.objects.filter(pk=boss.pk).exists())
+
+    def test_only_superusers_can_change_superusers(self):
+        root = User.objects.create_superuser("root", "root@college.edu", "x")
+        self.client.force_login(User.objects.create_user("boss", password="x", is_staff=True))
+        self.client.post(reverse("user_delete", args=[root.pk]))
+        self.client.post(reverse("user_edit", args=[root.pk]), {"username": "hacked", "email": "h@x.com"})
+        root.refresh_from_db()
+        self.assertEqual(root.username, "root")
+
     def test_students_cannot_open_monitoring(self):
         self.client.force_login(User.objects.create_user("stu", password="x"))
         self.assertRedirects(self.client.get(reverse("monitor_admins")), reverse("login"), fetch_redirect_response=False)

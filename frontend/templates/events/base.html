@@ -69,10 +69,10 @@
         </a>
 
         <div class="nav-section">User Monitoring</div>
-        <a class="side-link {% if page == 'monitor_admins' %}active{% endif %}" href="{% url 'monitor_admins' %}">
+        <a class="side-link {% if page == 'monitor_admins' or target and target.is_staff %}active{% endif %}" href="{% url 'monitor_admins' %}">
           <i class="bi bi-shield-check"></i> Admins
         </a>
-        <a class="side-link {% if page == 'monitor_students' %}active{% endif %}" href="{% url 'monitor_students' %}">
+        <a class="side-link {% if page == 'monitor_students' or target and not target.is_staff %}active{% endif %}" href="{% url 'monitor_students' %}">
           <i class="bi bi-person-video2"></i> Students
         </a>
       {% endif %}
