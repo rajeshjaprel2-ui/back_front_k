@@ -107,11 +107,26 @@ class StudentSignupTests(TestCase):
         self.client.post(reverse("login"), {"username": "boss", "password": "secret12"})
         self.assertEqual([m.to for m in mail.outbox], [["stu@college.edu"], ["boss@college.edu"]])
         student_alert, admin_alert = mail.outbox
-        self.assertIn("New sign-in", student_alert.subject)
+        self.assertIn("first sign-in", student_alert.subject)
         self.assertIn("Google Chrome on Windows", student_alert.body)
         self.assertIn("Role       : Student", student_alert.body)
         self.assertIn("Role       : Administrator", admin_alert.body)
         self.assertIn("Open admin dashboard", admin_alert.body)
+
+    def test_login_email_is_sent_only_on_first_login(self):
+        User.objects.create_user("boss", email="boss@college.edu", password="secret12", is_staff=True)
+        self.client.post(reverse("student_register"), signup_data())
+        self.client.logout()
+        for _ in range(2):
+            self.client.post(reverse("login"), {"username": "asha", "password": "secret12"})
+            self.client.logout()
+            self.client.post(reverse("login"), {"username": "boss", "password": "secret12"})
+            self.client.logout()
+        subjects = [(m.to, m.subject) for m in mail.outbox]
+        self.assertEqual(len(subjects), 3)
+        self.assertIn("Welcome", subjects[0][1])
+        self.assertEqual([to for to, _ in subjects[1:]], [["asha@college.edu"], ["boss@college.edu"]])
+        self.assertTrue(all("first sign-in" in s for _, s in subjects[1:]))
 
     @override_settings(
         LOGIN_ALERT_ROLES={"student"},

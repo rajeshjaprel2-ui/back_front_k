@@ -111,7 +111,7 @@ def _client_ip(request):
 
 
 def send_login_alert(user, request):
-    """Email a welcome-back banner with sign-in details to roles listed in LOGIN_ALERT_ROLES. Returns True if sent."""
+    """Email a first sign-in welcome with sign-in details to roles listed in LOGIN_ALERT_ROLES. Returns True if sent."""
     role = _role(user)
     if role not in settings.LOGIN_ALERT_ROLES or not user.email:
         return False
@@ -125,7 +125,7 @@ def send_login_alert(user, request):
     lines = [
         f"Dear {name},",
         "",
-        f"You have successfully signed in to your {brand['portal']} account.",
+        f"You have signed in to your {brand['portal']} account for the first time. Welcome aboard!",
         "",
         "Sign-in Details",
         f"  Email      : {user.email}",
@@ -144,7 +144,7 @@ def send_login_alert(user, request):
     ]
     try:
         _send_branded(
-            f"New sign-in to your {brand['portal']} account",
+            f"Your first sign-in to {brand['portal']}",
             "\n".join(lines),
             "events/emails/login_alert.html",
             {

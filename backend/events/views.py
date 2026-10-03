@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, JsonResponse
@@ -120,9 +121,14 @@ def login_view(request):
             password=form.cleaned_data["password"],
         )
         if user is not None:
+            first_login = user.last_login is None
             login(request, user)
-            messages.success(request, f"Welcome back, {user.get_full_name() or user.username}!")
-            send_login_alert(user, request)
+            name = user.get_full_name() or user.username
+            if first_login:
+                messages.success(request, f"Welcome, {name}!")
+                send_login_alert(user, request)
+            else:
+                messages.success(request, f"Welcome back, {name}!")
             next_url = request.POST.get("next") or request.GET.get("next")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
@@ -146,6 +152,8 @@ def student_register(request):
     if request.method == "POST" and form.is_valid():
         profile = form.save()
         login(request, profile.user)
+        # Keep last_login empty so the student's first real sign-in still gets the first-login email.
+        User.objects.filter(pk=profile.user.pk).update(last_login=None)
         if send_welcome_email(profile.user):
             messages.success(
                 request, f"Account created. A welcome email has been sent to {profile.user.email}."
