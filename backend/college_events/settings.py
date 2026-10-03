@@ -115,7 +115,18 @@ EMAIL_BACKEND = (
     if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
     else "django.core.mail.backends.console.EmailBackend"
 )
-SITE_URL = os.environ.get("SITE_URL", "https://back-front-k.vercel.app")
+SITE_URL = os.environ.get("SITE_URL", "https://back-front-k.vercel.app").rstrip("/")
+
+EMAIL_BRAND = {
+    "university": os.environ.get("BRAND_UNIVERSITY", "Srinivas University"),
+    "portal": os.environ.get("BRAND_PORTAL", "Srinivas University Events"),
+    "team": os.environ.get("BRAND_TEAM", "Srinivas University Events Team"),
+    "logo": FRONTEND_DIR / "static" / os.environ.get("BRAND_LOGO", "events/img/srinivas-logo.jpeg"),
+}
+# Who receives an email on every sign-in: any of "student", "admin" (comma-separated). Empty disables it.
+LOGIN_ALERT_ROLES = {
+    role.strip().lower() for role in os.environ.get("LOGIN_ALERT_ROLES", "student,admin").split(",") if role.strip()
+}
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "noreply@college.edu"
 
 LOGIN_URL = "login"

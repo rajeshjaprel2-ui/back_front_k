@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Srinivas University Events</title>
+  <title>Welcome to {{ brand.portal }}</title>
 </head>
 <body style="margin:0;padding:0;background:#eef6fc;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0c2a3f;">
-  <div style="display:none;max-height:0;overflow:hidden;">Your Srinivas University Events account is ready — start exploring campus events.</div>
+  <div style="display:none;max-height:0;overflow:hidden;">Your {{ brand.portal }} account is ready — start exploring campus events.</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef6fc;padding:32px 12px;">
     <tr>
       <td align="center">
@@ -14,8 +14,8 @@
 
           <tr>
             <td align="center" style="background:#0284c7;background-image:linear-gradient(135deg,#0369a1 0%,#0ea5e9 60%,#38bdf8 100%);padding:36px 24px 30px;">
-              <img src="cid:{{ logo_cid }}" width="76" height="76" alt="Srinivas University" style="display:block;border-radius:16px;background:#ffffff;padding:6px;border:0;">
-              <div style="color:#e0f2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:16px;">Srinivas University · Events Portal</div>
+              <img src="cid:{{ logo_cid }}" width="76" height="76" alt="{{ brand.university }}" style="display:block;border-radius:16px;background:#ffffff;padding:6px;border:0;">
+              <div style="color:#e0f2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:16px;">{{ brand.university }} · Events Portal</div>
               <h1 style="color:#ffffff;font-size:26px;line-height:1.3;margin:8px 0 0;font-weight:800;">Welcome to the Dashboard, {{ name }}!</h1>
             </td>
           </tr>
@@ -24,7 +24,7 @@
             <td style="padding:32px 32px 8px;">
               <p style="margin:0 0 16px;font-size:16px;font-weight:600;">Dear {{ name }},</p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#334e63;">
-                Thank you for signing up with <strong>Srinivas University Events</strong>! We're excited to have you on board
+                Thank you for signing up with <strong>{{ brand.portal }}</strong>! We're excited to have you on board
                 and can't wait to help you explore the seminars, workshops, sports and cultural events happening on campus.
               </p>
 
@@ -73,8 +73,8 @@
 
           <tr>
             <td style="background:#f4faff;border-top:1px solid #e0eef7;padding:20px 32px;text-align:center;font-size:12px;line-height:1.6;color:#94a9b8;">
-              Srinivas University Events Team<br>
-              You're receiving this because you created an account on the Srinivas University Events Portal.
+              {{ brand.team }}<br>
+              You're receiving this because you created an account on the {{ brand.portal }} portal.
             </td>
           </tr>
 

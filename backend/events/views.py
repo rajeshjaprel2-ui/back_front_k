@@ -122,8 +122,7 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Welcome back, {user.get_full_name() or user.username}!")
-            if not user.is_staff:
-                send_login_alert(user, request)
+            send_login_alert(user, request)
             next_url = request.POST.get("next") or request.GET.get("next")
             if next_url and url_has_allowed_host_and_scheme(
                 next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()

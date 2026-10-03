@@ -1,10 +1,11 @@
 from datetime import time, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -95,21 +96,36 @@ class StudentSignupTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("roll_number", form.errors)
 
-    def test_student_login_sends_alert_but_admin_login_does_not(self):
-        student = User.objects.create_user("stu", email="stu@college.edu", password="secret12", first_name="Stu")
+    def test_student_and_admin_logins_send_welcome_banner(self):
+        User.objects.create_user("stu", email="stu@college.edu", password="secret12", first_name="Stu")
         User.objects.create_user("boss", email="boss@college.edu", password="secret12", is_staff=True)
         self.client.post(
             reverse("login"), {"username": "stu", "password": "secret12"},
             HTTP_USER_AGENT="Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
         )
-        self.assertEqual(len(mail.outbox), 1)
-        alert = mail.outbox[0]
-        self.assertEqual(alert.to, [student.email])
-        self.assertIn("New sign-in", alert.subject)
-        self.assertIn("Google Chrome on Windows", alert.body)
         self.client.logout()
         self.client.post(reverse("login"), {"username": "boss", "password": "secret12"})
+        self.assertEqual([m.to for m in mail.outbox], [["stu@college.edu"], ["boss@college.edu"]])
+        student_alert, admin_alert = mail.outbox
+        self.assertIn("New sign-in", student_alert.subject)
+        self.assertIn("Google Chrome on Windows", student_alert.body)
+        self.assertIn("Role       : Student", student_alert.body)
+        self.assertIn("Role       : Administrator", admin_alert.body)
+        self.assertIn("Open admin dashboard", admin_alert.body)
+
+    @override_settings(
+        LOGIN_ALERT_ROLES={"student"},
+        EMAIL_BRAND={**settings.EMAIL_BRAND, "portal": "Demo Campus Events"},
+    )
+    def test_login_alert_roles_and_branding_come_from_settings(self):
+        User.objects.create_user("stu", email="stu@college.edu", password="secret12")
+        User.objects.create_user("boss", email="boss@college.edu", password="secret12", is_staff=True)
+        self.client.post(reverse("login"), {"username": "boss", "password": "secret12"})
+        self.assertEqual(len(mail.outbox), 0)
+        self.client.logout()
+        self.client.post(reverse("login"), {"username": "stu", "password": "secret12"})
         self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Demo Campus Events", mail.outbox[0].subject)
 
     def test_signup_page_hides_sidebar(self):
         response = self.client.get(reverse("student_register"))

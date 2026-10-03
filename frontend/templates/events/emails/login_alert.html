@@ -6,7 +6,7 @@
   <title>New sign-in to your account</title>
 </head>
 <body style="margin:0;padding:0;background:#eef6fc;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#0c2a3f;">
-  <div style="display:none;max-height:0;overflow:hidden;">You just signed in to Srinivas University Events on {{ signed_in }}.</div>
+  <div style="display:none;max-height:0;overflow:hidden;">You just signed in to {{ brand.portal }} on {{ signed_in }}.</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef6fc;padding:32px 12px;">
     <tr>
       <td align="center">
@@ -14,8 +14,8 @@
 
           <tr>
             <td align="center" style="background:#0284c7;background-image:linear-gradient(135deg,#0369a1 0%,#0ea5e9 60%,#38bdf8 100%);padding:36px 24px 30px;">
-              <img src="cid:{{ logo_cid }}" width="76" height="76" alt="Srinivas University" style="display:block;border-radius:16px;background:#ffffff;padding:6px;border:0;">
-              <div style="color:#e0f2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:16px;">Srinivas University · Events Portal</div>
+              <img src="cid:{{ logo_cid }}" width="76" height="76" alt="{{ brand.university }}" style="display:block;border-radius:16px;background:#ffffff;padding:6px;border:0;">
+              <div style="color:#e0f2fe;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:16px;">{{ brand.university }} · Events Portal</div>
               <h1 style="color:#ffffff;font-size:26px;line-height:1.3;margin:8px 0 0;font-weight:800;">Welcome back, {{ name }}! 👋</h1>
             </td>
           </tr>
@@ -24,7 +24,7 @@
             <td style="padding:32px 32px 8px;">
               <p style="margin:0 0 16px;font-size:16px;font-weight:600;">Dear {{ name }},</p>
               <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#334e63;">
-                You have successfully signed in to your <strong>Srinivas University Events</strong> account.
+                You have successfully signed in to your <strong>{{ brand.portal }}</strong> account.
                 Here are the details of this sign-in.
               </p>
 
@@ -42,6 +42,10 @@
                       <tr>
                         <td style="padding:7px 0;color:#5f7a8f;border-top:1px solid #e0eef7;">Username</td>
                         <td style="padding:7px 0;font-weight:600;color:#0c2a3f;border-top:1px solid #e0eef7;">{{ username }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:7px 0;color:#5f7a8f;border-top:1px solid #e0eef7;">Role</td>
+                        <td style="padding:7px 0;font-weight:600;color:#0c2a3f;border-top:1px solid #e0eef7;">{{ role }}</td>
                       </tr>
                       <tr>
                         <td style="padding:7px 0;color:#5f7a8f;border-top:1px solid #e0eef7;">Time</td>
@@ -72,13 +76,13 @@
 
           <tr>
             <td align="center" style="padding:28px 32px 36px;">
-              <a href="{{ site_url }}" style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;">Browse upcoming events &rarr;</a>
+              <a href="{{ dashboard_url }}" style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;">{{ cta }} &rarr;</a>
             </td>
           </tr>
 
           <tr>
             <td style="background:#f4faff;border-top:1px solid #e0eef7;padding:20px 32px;text-align:center;font-size:12px;line-height:1.6;color:#94a9b8;">
-              Srinivas University Events Team<br>
+              {{ brand.team }}<br>
               This is an automatic security notice sent every time you sign in.
             </td>
           </tr>

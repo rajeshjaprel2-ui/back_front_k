@@ -4,38 +4,75 @@ from email.mime.image import MIMEImage
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-LOGO_PATH = settings.FRONTEND_DIR / "static" / "events" / "img" / "srinivas-logo.jpeg"
-LOGO_CID = "srinivas-logo"
+LOGO_CID = "brand-logo"
+DATETIME_FORMAT = "%d %B %Y, %I:%M %p"
+
+BROWSERS = [
+    ("Edg/", "Microsoft Edge"),
+    ("OPR/", "Opera"),
+    ("Chrome/", "Google Chrome"),
+    ("Firefox/", "Mozilla Firefox"),
+    ("Safari/", "Safari"),
+]
+SYSTEMS = [
+    ("Android", "Android"),
+    ("iPhone", "iPhone"),
+    ("iPad", "iPad"),
+    ("Windows", "Windows"),
+    ("Mac OS X", "macOS"),
+    ("Linux", "Linux"),
+]
+ROLES = {
+    "admin": {"label": "Administrator", "cta": "Open admin dashboard"},
+    "student": {"label": "Student", "cta": "Go to my dashboard"},
+}
+
+
+def _brand():
+    return settings.EMAIL_BRAND
+
+
+def _role(user):
+    return "admin" if user.is_staff else "student"
+
+
+def _site_link(url_name):
+    return f"{settings.SITE_URL}{reverse(url_name)}"
 
 
 def _send_branded(subject, text, template, context, to):
-    """Send a plain-text email with an HTML version that embeds the university logo."""
-    html = render_to_string(template, {**context, "site_url": settings.SITE_URL, "logo_cid": LOGO_CID})
+    """Send a plain-text email with an HTML version that embeds the brand logo."""
+    brand = _brand()
+    html = render_to_string(
+        template, {**context, "brand": brand, "site_url": settings.SITE_URL, "logo_cid": LOGO_CID}
+    )
     message = EmailMultiAlternatives(subject=subject, body=text, from_email=settings.DEFAULT_FROM_EMAIL, to=[to])
     message.mixed_subtype = "related"
     message.attach_alternative(html, "text/html")
-    with open(LOGO_PATH, "rb") as fh:
+    with open(brand["logo"], "rb") as fh:
         logo = MIMEImage(fh.read())
     logo.add_header("Content-ID", f"<{LOGO_CID}>")
-    logo.add_header("Content-Disposition", "inline", filename="srinivas-logo.jpeg")
+    logo.add_header("Content-Disposition", "inline", filename=brand["logo"].name)
     message.attach(logo)
     message.send()
 
 
 def send_welcome_email(user):
-    """Thank a newly signed-up student and confirm their account details. Returns True if sent."""
+    """Thank a newly signed-up user and confirm their account details. Returns True if sent."""
     if not user.email:
         return False
+    brand = _brand()
     name = user.get_full_name() or user.username
-    signed_up = timezone.localtime(user.date_joined).strftime("%d %B %Y, %I:%M %p")
+    signed_up = timezone.localtime(user.date_joined).strftime(DATETIME_FORMAT)
     lines = [
         f"Dear {name},",
         "",
-        "Thank you for signing up with Srinivas University Events! We're excited to have you on board "
+        f"Thank you for signing up with {brand['portal']}! We're excited to have you on board "
         "and can't wait to help you explore the seminars, workshops, sports and cultural events happening on campus.",
         "",
         "Your Account Details",
@@ -45,11 +82,11 @@ def send_welcome_email(user):
         "",
         "You can now sign in, browse upcoming events and reserve your seat in one click.",
         "",
-        "Srinivas University Events Team",
+        brand["team"],
     ]
     try:
         _send_branded(
-            "Welcome to Srinivas University Events!",
+            f"Welcome to {brand['portal']}!",
             "\n".join(lines),
             "events/emails/welcome.html",
             {"name": name, "email": user.email, "username": user.username, "signed_up": signed_up},
@@ -63,16 +100,8 @@ def send_welcome_email(user):
 
 def _describe_device(user_agent):
     ua = user_agent or ""
-    browser = next(
-        (name for key, name in [("Edg/", "Microsoft Edge"), ("OPR/", "Opera"), ("Chrome/", "Google Chrome"),
-                                ("Firefox/", "Mozilla Firefox"), ("Safari/", "Safari")] if key in ua),
-        "Unknown browser",
-    )
-    system = next(
-        (name for key, name in [("Android", "Android"), ("iPhone", "iPhone"), ("iPad", "iPad"), ("Windows", "Windows"),
-                                ("Mac OS X", "macOS"), ("Linux", "Linux")] if key in ua),
-        "Unknown device",
-    )
+    browser = next((name for key, name in BROWSERS if key in ua), "Unknown browser")
+    system = next((name for key, name in SYSTEMS if key in ua), "Unknown device")
     return f"{browser} on {system}"
 
 
@@ -82,37 +111,53 @@ def _client_ip(request):
 
 
 def send_login_alert(user, request):
-    """Tell a student that their account was just signed in to. Returns True if sent."""
-    if not user.email:
+    """Email a welcome-back banner with sign-in details to roles listed in LOGIN_ALERT_ROLES. Returns True if sent."""
+    role = _role(user)
+    if role not in settings.LOGIN_ALERT_ROLES or not user.email:
         return False
+    brand = _brand()
+    role_info = ROLES[role]
     name = user.get_full_name() or user.username
-    signed_in = timezone.localtime().strftime("%d %B %Y, %I:%M %p")
+    signed_in = timezone.localtime().strftime(DATETIME_FORMAT)
     device = _describe_device(request.META.get("HTTP_USER_AGENT"))
     ip = _client_ip(request)
+    dashboard_url = _site_link("dashboard")
     lines = [
         f"Dear {name},",
         "",
-        "You have successfully signed in to your Srinivas University Events account.",
+        f"You have successfully signed in to your {brand['portal']} account.",
         "",
         "Sign-in Details",
         f"  Email      : {user.email}",
         f"  Username   : {user.username}",
+        f"  Role       : {role_info['label']}",
         f"  Time       : {signed_in}",
         f"  Device     : {device}",
         f"  IP address : {ip}",
         "",
+        f"{role_info['cta']}: {dashboard_url}",
+        "",
         "If this was you, no action is needed. If you don't recognise this sign-in, "
         "please contact the events administrator immediately.",
         "",
-        "Srinivas University Events Team",
+        brand["team"],
     ]
     try:
         _send_branded(
-            "New sign-in to your Srinivas University Events account",
+            f"New sign-in to your {brand['portal']} account",
             "\n".join(lines),
             "events/emails/login_alert.html",
-            {"name": name, "email": user.email, "username": user.username,
-             "signed_in": signed_in, "device": device, "ip": ip},
+            {
+                "name": name,
+                "email": user.email,
+                "username": user.username,
+                "role": role_info["label"],
+                "cta": role_info["cta"],
+                "dashboard_url": dashboard_url,
+                "signed_in": signed_in,
+                "device": device,
+                "ip": ip,
+            },
             user.email,
         )
     except Exception:
@@ -156,7 +201,7 @@ def send_registration_confirmation(registration):
             lines.append(f"  Student : {event.student_coordinator_name} ({event.student_coordinator_phone})")
         if event.teacher_coordinator_name:
             lines.append(f"  Teacher : {event.teacher_coordinator_name} ({event.teacher_coordinator_phone})")
-    lines += ["", "Please arrive on time. We look forward to seeing you!", "", "College Events Team"]
+    lines += ["", "Please arrive on time. We look forward to seeing you!", "", _brand()["team"]]
 
     try:
         send_mail(
