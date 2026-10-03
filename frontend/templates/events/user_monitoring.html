@@ -1,0 +1,85 @@
+{% extends "events/base.html" %}
+{% block title %}{% if is_admin_view %}Admin{% else %}Student{% endif %} Monitoring{% endblock %}
+{% block content %}
+{% if is_admin_view %}{% url 'monitor_admins' as base_url %}{% else %}{% url 'monitor_students' as base_url %}{% endif %}
+<div class="page-header">
+  <div>
+    <h1>{% if is_admin_view %}Admin{% else %}Student{% endif %} monitoring</h1>
+    <p>Sign-up dates, last sign-in and activity for every {% if is_admin_view %}administrator{% else %}student{% endif %} account.</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for s in summary %}
+  <div class="col-sm-6 col-xl-3">
+    <a class="stat-card text-decoration-none{% if status == s.key %} selected{% endif %}" href="{{ base_url }}?status={{ s.key }}{% if q %}&q={{ q|urlencode }}{% endif %}">
+      <div><div class="label">{{ s.label }}</div><div class="value">{{ s.count }}</div><div class="hint">of {{ total }} account{{ total|pluralize }}</div></div>
+      <span class="status-pill {{ s.badge }}">{% if status == s.key %}Filtered{% else %}View{% endif %}</span>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card-x">
+  <div class="card-x-header">
+    <div>
+      <h3>{{ rows|length }} {% if is_admin_view %}admin{% else %}student{% endif %}{{ rows|length|pluralize }}</h3>
+      {% if q or status %}<p>{% if q %}Results for “{{ q }}”{% endif %}{% if q and status %} · {% endif %}{% for s in summary %}{% if s.key == status %}{{ s.label }}{% endif %}{% endfor %} · <a href="{{ base_url }}">clear</a></p>{% endif %}
+    </div>
+    <form method="get" class="input-icon" style="max-width:320px;width:100%" role="search">
+      <i class="bi bi-search"></i>
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search name, username or email">
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-x">
+      <thead>
+        <tr>
+          <th>{% if is_admin_view %}Admin{% else %}Student{% endif %}</th>
+          <th>Username</th>
+          {% if not is_admin_view %}<th>Roll no.</th><th>Department</th>{% endif %}
+          <th>Joined</th>
+          <th>Last sign-in</th>
+          <th>Status</th>
+          {% if not is_admin_view %}<th class="text-end">Events</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>
+            <div class="cell-user">
+              <span class="avatar">{% firstof r.user.first_name|first r.user.username|first %}{{ r.user.last_name|first }}</span>
+              <div>
+                <div class="name">{{ r.user.get_full_name|default:r.user.username }}{% if r.user.is_superuser %} <span class="cat-chip">Superuser</span>{% endif %}</div>
+                <div class="sub">{{ r.user.email|default:"No email" }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono">{{ r.user.username }}</td>
+          {% if not is_admin_view %}
+          <td class="mono">{{ r.profile.roll_number|default:"—" }}</td>
+          <td>{{ r.profile.get_department_display|default:"—" }}</td>
+          {% endif %}
+          <td class="text-nowrap">{{ r.user.date_joined|date:"d M Y" }}</td>
+          <td class="text-nowrap">
+            {% if r.user.last_login %}{{ r.user.last_login|date:"d M Y, h:i A" }}<div class="sub">{{ r.user.last_login|timesince }} ago</div>{% else %}—{% endif %}
+          </td>
+          <td><span class="status-pill {{ r.activity.badge }}">{{ r.activity.label }}</span></td>
+          {% if not is_admin_view %}<td class="text-end"><span class="cat-chip">{{ r.user.reg_count }}</span></td>{% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">
+          <div class="empty-state py-4">
+            <div class="empty-icon"><i class="bi bi-person-x"></i></div>
+            <h3>No {% if is_admin_view %}admins{% else %}students{% endif %} found</h3>
+            <p>{% if q or status %}Try a different search or filter.{% else %}Accounts will appear here once they are created.{% endif %}</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

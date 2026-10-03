@@ -67,6 +67,14 @@
         <a class="side-link {% if page == 'reports' %}active{% endif %}" href="{% url 'reports' %}">
           <i class="bi bi-bar-chart-line"></i> Reports
         </a>
+
+        <div class="nav-section">User Monitoring</div>
+        <a class="side-link {% if page == 'monitor_admins' %}active{% endif %}" href="{% url 'monitor_admins' %}">
+          <i class="bi bi-shield-check"></i> Admins
+        </a>
+        <a class="side-link {% if page == 'monitor_students' %}active{% endif %}" href="{% url 'monitor_students' %}">
+          <i class="bi bi-person-video2"></i> Students
+        </a>
       {% endif %}
 
     </nav>

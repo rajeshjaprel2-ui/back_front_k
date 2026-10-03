@@ -522,6 +522,63 @@ def export_participants(request, pk):
     return response
 
 
+ACTIVITY_LEVELS = {
+    "today": {"label": "Active today", "badge": "badge-ongoing"},
+    "week": {"label": "Active this week", "badge": "badge-upcoming"},
+    "inactive": {"label": "Inactive", "badge": "badge-completed"},
+    "never": {"label": "Never signed in", "badge": "badge-cancelled"},
+}
+
+
+def _activity(last_login, now):
+    if last_login is None:
+        return "never"
+    if last_login >= now - timedelta(days=1):
+        return "today"
+    if last_login >= now - timedelta(days=7):
+        return "week"
+    return "inactive"
+
+
+@admin_required
+def user_monitoring(request, role):
+    is_admin_view = role == "admins"
+    users = User.objects.filter(is_staff=is_admin_view).order_by("-last_login", "-date_joined")
+    if not is_admin_view:
+        users = users.select_related("profile").annotate(reg_count=Count("event_registrations"))
+    q = request.GET.get("q", "").strip()
+    if q:
+        users = users.filter(
+            Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q)
+        )
+
+    now = timezone.now()
+    rows = []
+    counts = {key: 0 for key in ACTIVITY_LEVELS}
+    for u in users:
+        level = _activity(u.last_login, now)
+        counts[level] += 1
+        rows.append({"user": u, "profile": getattr(u, "profile", None), "activity": {"key": level, **ACTIVITY_LEVELS[level]}})
+
+    status = request.GET.get("status", "")
+    if status in ACTIVITY_LEVELS:
+        rows = [r for r in rows if r["activity"]["key"] == status]
+
+    return render(
+        request,
+        "events/user_monitoring.html",
+        {
+            "role": role,
+            "is_admin_view": is_admin_view,
+            "rows": rows,
+            "total": sum(counts.values()),
+            "summary": [{"key": key, **info, "count": counts[key]} for key, info in ACTIVITY_LEVELS.items()],
+            "status": status,
+            "q": q,
+        },
+    )
+
+
 @admin_required
 def student_list(request):
     students = StudentProfile.objects.select_related("user").annotate(reg_count=Count("user__event_registrations"))

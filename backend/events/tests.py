@@ -148,6 +148,36 @@ class StudentSignupTests(TestCase):
         self.assertNotContains(response, 'id="sidebar"')
 
 
+class UserMonitoringTests(TestCase):
+    def test_admin_and_student_monitoring_are_separate(self):
+        boss = User.objects.create_user("boss", email="boss@college.edu", password="x", is_staff=True)
+        User.objects.create_user("idle_admin", email="idle@college.edu", password="x", is_staff=True)
+        stu = User.objects.create_user("stu", email="stu@college.edu", password="x")
+        User.objects.filter(pk=stu.pk).update(last_login=timezone.now() - timedelta(days=3))
+        self.client.force_login(boss)
+
+        admins = self.client.get(reverse("monitor_admins"))
+        self.assertContains(admins, "Admin monitoring")
+        self.assertContains(admins, "boss@college.edu")
+        self.assertContains(admins, "idle@college.edu")
+        self.assertNotContains(admins, '<td class="mono">stu</td>')
+        self.assertContains(admins, "Never signed in")
+        self.assertContains(admins, 'href="/monitoring/students/"')
+
+        students = self.client.get(reverse("monitor_students"))
+        self.assertContains(students, '<td class="mono">stu</td>')
+        self.assertNotContains(students, '<td class="mono">boss</td>')
+        self.assertContains(students, "Active this week")
+
+        never = self.client.get(reverse("monitor_admins"), {"status": "never"})
+        self.assertContains(never, '<td class="mono">idle_admin</td>')
+        self.assertNotContains(never, '<td class="mono">boss</td>')
+
+    def test_students_cannot_open_monitoring(self):
+        self.client.force_login(User.objects.create_user("stu", password="x"))
+        self.assertRedirects(self.client.get(reverse("monitor_admins")), reverse("login"), fetch_redirect_response=False)
+
+
 def form_data(**overrides):
     starts = timezone.localtime() + timedelta(days=2)
     data = {
