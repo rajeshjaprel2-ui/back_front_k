@@ -36,47 +36,68 @@
     </div>
 
     <div class="col-lg-5">
-      {% if spotlight %}
-        <article class="spotlight cat-{{ spotlight.category }}">
-          <div class="spotlight-top">
-            <span class="spotlight-label"><i class="bi bi-lightning-charge-fill"></i> Next up</span>
-            <span class="type-tag type-{{ spotlight.participation_type }}">
-              <i class="bi {% if spotlight.participation_type == 'solo' %}bi-person{% else %}bi-people{% endif %}"></i>
-              {% if spotlight.participation_type == "team" %}Team{% elif spotlight.participation_type == "both" %}Solo / Team{% else %}Solo{% endif %}
-            </span>
-          </div>
-          <span class="cat-tag"><i class="bi {{ spotlight.category_icon }}"></i> {{ spotlight.get_category_display }}</span>
-          <h2 class="spotlight-title">{{ spotlight.title }}</h2>
-          <ul class="event-meta mb-3">
-            <li><i class="bi bi-calendar3"></i><span>{{ spotlight.date|date:"l, d M Y" }}</span></li>
-            <li><i class="bi bi-clock"></i><span>{{ spotlight.time|time:"g:i A" }}{% if spotlight.end_time %} – {{ spotlight.end_time|time:"g:i A" }}{% endif %}</span></li>
-            <li><i class="bi bi-geo-alt"></i><span>{{ spotlight.venue }}</span></li>
-          </ul>
+      {% if spotlights %}
+        <div class="spotlight-slider" aria-roledescription="carousel" aria-label="Upcoming events">
+          <div class="slides">
+            {% for spotlight in spotlights %}
+            <article class="spotlight slide cat-{{ spotlight.category }}" aria-roledescription="slide" aria-label="{{ forloop.counter }} of {{ spotlights|length }}" {% if not forloop.first %}hidden{% endif %}>
+              <div class="spotlight-top">
+                {% if forloop.first %}
+                  <span class="spotlight-label"><i class="bi bi-lightning-charge-fill"></i> Next up</span>
+                {% else %}
+                  <span class="spotlight-label soon"><i class="bi bi-calendar-event"></i> Coming soon</span>
+                {% endif %}
+                <span class="type-tag type-{{ spotlight.participation_type }}">
+                  <i class="bi {% if spotlight.participation_type == 'solo' %}bi-person{% else %}bi-people{% endif %}"></i>
+                  {% if spotlight.participation_type == "team" %}Team{% elif spotlight.participation_type == "both" %}Solo / Team{% else %}Solo{% endif %}
+                </span>
+              </div>
+              <span class="cat-tag"><i class="bi {{ spotlight.category_icon }}"></i> {{ spotlight.get_category_display }}</span>
+              <h2 class="spotlight-title">{{ spotlight.title }}</h2>
+              <ul class="event-meta mb-3">
+                <li><i class="bi bi-calendar3"></i><span>{{ spotlight.date|date:"l, d M Y" }}</span></li>
+                <li><i class="bi bi-clock"></i><span>{{ spotlight.time|time:"g:i A" }}{% if spotlight.end_time %} – {{ spotlight.end_time|time:"g:i A" }}{% endif %}</span></li>
+                <li><i class="bi bi-geo-alt"></i><span>{{ spotlight.venue }}</span></li>
+              </ul>
 
-          <div class="countdown" data-start="{{ spotlight.starts_at|date:'c' }}" data-end="{{ spotlight.ends_at|date:'c' }}">
-            <div class="cd-unit"><strong data-cd="d">--</strong><span>Days</span></div>
-            <div class="cd-unit"><strong data-cd="h">--</strong><span>Hours</span></div>
-            <div class="cd-unit"><strong data-cd="m">--</strong><span>Mins</span></div>
-            <div class="cd-unit"><strong data-cd="s">--</strong><span>Secs</span></div>
-          </div>
-          <div class="countdown-live" hidden><span class="live-dot"></span> Happening now — join in!</div>
+              <div class="countdown" data-start="{{ spotlight.starts_at|date:'c' }}" data-end="{{ spotlight.ends_at|date:'c' }}">
+                <div class="cd-unit"><strong data-cd="d">--</strong><span>Days</span></div>
+                <div class="cd-unit"><strong data-cd="h">--</strong><span>Hours</span></div>
+                <div class="cd-unit"><strong data-cd="m">--</strong><span>Mins</span></div>
+                <div class="cd-unit"><strong data-cd="s">--</strong><span>Secs</span></div>
+              </div>
+              <div class="countdown-live" hidden><span class="live-dot"></span> Happening now — join in!</div>
 
-          {% with left=spotlight.seats_left pct=spotlight.occupancy_percent %}
-          <div class="seat-row mt-3">
-            <span class="left">{{ spotlight.registered_count }} / {{ spotlight.max_participants }} registered</span>
-            <span class="right {% if pct >= 80 %}low{% endif %}">{% if pct >= 80 %}Only {{ left }} left!{% else %}{{ left }} seats left{% endif %}</span>
-          </div>
-          <div class="bar mb-3 {% if pct >= 80 %}warn{% endif %}"><span style="width: {{ pct }}%"></span></div>
-          {% endwith %}
+              {% with left=spotlight.seats_left pct=spotlight.occupancy_percent %}
+              <div class="seat-row mt-3">
+                <span class="left">{{ spotlight.registered_count }} / {{ spotlight.max_participants }} registered</span>
+                <span class="right {% if pct >= 80 %}low{% endif %}">{% if pct >= 80 %}Only {{ left }} left!{% else %}{{ left }} seats left{% endif %}</span>
+              </div>
+              <div class="bar mb-3 {% if pct >= 80 %}warn{% endif %}"><span style="width: {{ pct }}%"></span></div>
+              {% endwith %}
 
-          {% if spotlight_registered %}
-            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-outline w-100"><i class="bi bi-check-circle-fill text-success"></i> You're registered</a>
-          {% elif user.is_staff %}
-            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary w-100">View event</a>
-          {% else %}
-            <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary btn-lg w-100"><i class="bi bi-ticket-perforated"></i> Reserve my seat</a>
+              {% if spotlight.user_registered %}
+                <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-outline w-100"><i class="bi bi-check-circle-fill text-success"></i> You're registered</a>
+              {% elif user.is_staff %}
+                <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary w-100">View event</a>
+              {% else %}
+                <a href="{% url 'event_detail' spotlight.pk %}" class="btn btn-primary btn-lg w-100"><i class="bi bi-ticket-perforated"></i> Reserve my seat</a>
+              {% endif %}
+            </article>
+            {% endfor %}
+          </div>
+          {% if spotlights|length > 1 %}
+          <div class="slider-nav">
+            <button type="button" class="slider-btn" data-dir="-1" aria-label="Previous event"><i class="bi bi-chevron-left"></i></button>
+            <div class="slider-dots">
+              {% for spotlight in spotlights %}
+                <button type="button" class="slider-dot{% if forloop.first %} active{% endif %}" data-index="{{ forloop.counter0 }}" aria-label="Show {{ spotlight.title }}"></button>
+              {% endfor %}
+            </div>
+            <button type="button" class="slider-btn" data-dir="1" aria-label="Next event"><i class="bi bi-chevron-right"></i></button>
+          </div>
           {% endif %}
-        </article>
+        </div>
       {% else %}
         <div class="spotlight spotlight-empty">
           <div class="empty-icon"><i class="bi bi-calendar-heart"></i></div>
@@ -190,32 +211,82 @@
 {% block scripts %}
 <script>
   (function () {
-    const box = document.querySelector(".countdown");
-    if (!box) return;
-    const start = new Date(box.dataset.start).getTime();
-    const end = new Date(box.dataset.end).getTime();
-    const live = document.querySelector(".countdown-live");
-    const out = {};
-    box.querySelectorAll("[data-cd]").forEach((el) => (out[el.dataset.cd] = el));
     const pad = (n) => String(n).padStart(2, "0");
+    const countdowns = [...document.querySelectorAll(".countdown")].map((box) => {
+      const out = {};
+      box.querySelectorAll("[data-cd]").forEach((el) => (out[el.dataset.cd] = el));
+      return {
+        box,
+        out,
+        live: box.parentElement.querySelector(".countdown-live"),
+        start: new Date(box.dataset.start).getTime(),
+        end: new Date(box.dataset.end).getTime(),
+      };
+    });
 
     function tick() {
       const now = Date.now();
-      let diff = Math.max(0, Math.floor((start - now) / 1000));
-      if (diff === 0) {
-        box.hidden = true;
-        live.hidden = now >= end;
-        return now < end;
-      }
-      out.d.textContent = pad(Math.floor(diff / 86400));
-      out.h.textContent = pad(Math.floor((diff % 86400) / 3600));
-      out.m.textContent = pad(Math.floor((diff % 3600) / 60));
-      out.s.textContent = pad(diff % 60);
-      return true;
+      countdowns.forEach(({ box, out, live, start, end }) => {
+        const diff = Math.max(0, Math.floor((start - now) / 1000));
+        if (diff === 0) {
+          box.hidden = true;
+          live.hidden = now >= end;
+          return;
+        }
+        out.d.textContent = pad(Math.floor(diff / 86400));
+        out.h.textContent = pad(Math.floor((diff % 86400) / 3600));
+        out.m.textContent = pad(Math.floor((diff % 3600) / 60));
+        out.s.textContent = pad(diff % 60);
+      });
     }
-    if (tick()) {
-      const timer = setInterval(() => { if (!tick()) clearInterval(timer); }, 1000);
+    if (countdowns.length) {
+      tick();
+      setInterval(tick, 1000);
     }
+
+    const slider = document.querySelector(".spotlight-slider");
+    const slides = slider ? [...slider.querySelectorAll(".slide")] : [];
+    if (slides.length < 2) return;
+    const dots = [...slider.querySelectorAll(".slider-dot")];
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let current = 0;
+    let timer = null;
+
+    function go(i) {
+      current = (i + slides.length) % slides.length;
+      slides.forEach((s, n) => (s.hidden = n !== current));
+      dots.forEach((d, n) => {
+        d.classList.toggle("active", n === current);
+        d.setAttribute("aria-current", n === current ? "true" : "false");
+      });
+    }
+    function play() {
+      if (reduceMotion) return;
+      stop();
+      timer = setInterval(() => go(current + 1), 5000);
+    }
+    function stop() { clearInterval(timer); }
+
+    slider.querySelectorAll(".slider-btn").forEach((btn) =>
+      btn.addEventListener("click", () => { go(current + Number(btn.dataset.dir)); play(); })
+    );
+    dots.forEach((dot) => dot.addEventListener("click", () => { go(Number(dot.dataset.index)); play(); }));
+    slider.addEventListener("mouseenter", stop);
+    slider.addEventListener("mouseleave", play);
+    slider.addEventListener("focusin", stop);
+    slider.addEventListener("focusout", play);
+
+    let touchX = null;
+    slider.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; stop(); }, { passive: true });
+    slider.addEventListener("touchend", (e) => {
+      if (touchX === null) return;
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx) > 40) go(current + (dx < 0 ? 1 : -1));
+      touchX = null;
+      play();
+    });
+
+    play();
   })();
 </script>
 {% endblock %}

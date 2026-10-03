@@ -29,6 +29,21 @@ def signup_data(**overrides):
     return data
 
 
+class HomeSliderTests(TestCase):
+    def test_home_slider_shows_every_open_event(self):
+        admin = User.objects.create_user("admin", password="x", is_staff=True)
+        for days in (1, 2, 3):
+            Event.objects.create(
+                title=f"Event {days}", description="d", category="seminar", venue="v",
+                date=timezone.localdate() + timedelta(days=days), time=time(10, 0), created_by=admin,
+            )
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, 'class="spotlight slide', count=3)
+        self.assertContains(response, "data-index=", count=3)
+        self.assertContains(response, "Next up", count=1)
+        self.assertContains(response, 'spotlight-label soon"', count=2)
+
+
 class PosterStorageTests(TestCase):
     def test_poster_is_stored_in_mongodb_and_served(self):
         name = default_storage.save("event_posters/test.png", ContentFile(b"\x89PNG-bytes", name="test.png"))
@@ -51,6 +66,14 @@ class StudentSignupTests(TestCase):
         profile = StudentProfile.objects.get(user__username="asha")
         self.assertEqual(profile.phone, "9845012345")
         self.assertEqual(profile.roll_number, "BCA2024001")
+        self.assertEqual(len(mail.outbox), 1)
+        welcome = mail.outbox[0]
+        self.assertEqual(welcome.to, ["asha@college.edu"])
+        self.assertIn("Welcome", welcome.subject)
+        self.assertIn("Dear Asha Rao,", welcome.body)
+        self.assertIn("Thank you for signing up with Srinivas University Events!", welcome.body)
+        self.assertIn("Email       : asha@college.edu", welcome.body)
+        self.assertIn(timezone.localdate().strftime("%d %B %Y"), welcome.body)
 
     def test_invalid_phone_and_short_password_are_rejected(self):
         form = StudentRegisterForm(data=signup_data(phone="12345", password="abc", confirm_password="abc"))

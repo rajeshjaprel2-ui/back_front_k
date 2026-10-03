@@ -13,6 +13,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'events/css/style.css' %}">
   <link rel="icon" href="{% static 'events/img/srinivas-logo.jpeg' %}">
+  <script>
+    try { if (localStorage.getItem("sidebarCollapsed") === "1") document.documentElement.classList.add("sidebar-collapsed"); } catch (e) {}
+  </script>
 </head>
 <body>
 {% with page=request.resolver_match.url_name %}
@@ -86,7 +89,7 @@
   <div class="app-main">
     <header class="topbar">
       {% if page != 'login' and page != 'student_register' %}
-      <button class="icon-btn d-lg-none" type="button" id="menuBtn" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+      <button class="icon-btn" type="button" id="menuBtn" aria-label="Toggle menu" title="Show / hide menu" aria-controls="sidebar" aria-expanded="false">
         <i class="bi bi-list"></i>
       </button>
       {% endif %}
@@ -162,7 +165,23 @@
       backdrop.classList.toggle("show", open);
       menuBtn?.setAttribute("aria-expanded", String(open));
     }
-    menuBtn?.addEventListener("click", () => setSidebar(!sidebar?.classList.contains("open")));
+    const desktop = window.matchMedia("(min-width: 992px)");
+    function syncExpanded() {
+      if (desktop.matches) {
+        menuBtn?.setAttribute("aria-expanded", String(!document.documentElement.classList.contains("sidebar-collapsed")));
+      }
+    }
+    menuBtn?.addEventListener("click", () => {
+      if (desktop.matches) {
+        const collapsed = document.documentElement.classList.toggle("sidebar-collapsed");
+        try { localStorage.setItem("sidebarCollapsed", collapsed ? "1" : "0"); } catch (e) {}
+        syncExpanded();
+      } else {
+        setSidebar(!sidebar?.classList.contains("open"));
+      }
+    });
+    desktop.addEventListener("change", () => { setSidebar(false); syncExpanded(); });
+    syncExpanded();
     backdrop?.addEventListener("click", () => setSidebar(false));
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") setSidebar(false); });
 

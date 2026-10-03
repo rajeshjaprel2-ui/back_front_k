@@ -1,9 +1,68 @@
 import logging
+from email.mime.image import MIMEImage
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+LOGO_PATH = settings.FRONTEND_DIR / "static" / "events" / "img" / "srinivas-logo.jpeg"
+LOGO_CID = "srinivas-logo"
+
+
+def send_welcome_email(user):
+    """Thank a newly signed-up student and confirm their account details. Returns True if sent."""
+    if not user.email:
+        return False
+    signed_up = timezone.localtime(user.date_joined).strftime("%d %B %Y, %I:%M %p")
+    lines = [
+        f"Dear {user.get_full_name() or user.username},",
+        "",
+        "Thank you for signing up with Srinivas University Events! We're excited to have you on board "
+        "and can't wait to help you explore the seminars, workshops, sports and cultural events happening on campus.",
+        "",
+        "Your Account Details",
+        f"  Email       : {user.email}",
+        f"  Username    : {user.username}",
+        f"  Signup Date : {signed_up}",
+        "",
+        "You can now sign in, browse upcoming events and reserve your seat in one click.",
+        "",
+        "Srinivas University Events Team",
+    ]
+    name = user.get_full_name() or user.username
+    html = render_to_string(
+        "events/emails/welcome.html",
+        {
+            "name": name,
+            "email": user.email,
+            "username": user.username,
+            "signed_up": signed_up,
+            "site_url": settings.SITE_URL,
+            "logo_cid": LOGO_CID,
+        },
+    )
+    message = EmailMultiAlternatives(
+        subject="Welcome to Srinivas University Events!",
+        body="\n".join(lines),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    message.mixed_subtype = "related"
+    message.attach_alternative(html, "text/html")
+    with open(LOGO_PATH, "rb") as fh:
+        logo = MIMEImage(fh.read())
+    logo.add_header("Content-ID", f"<{LOGO_CID}>")
+    logo.add_header("Content-Disposition", "inline", filename="srinivas-logo.jpeg")
+    message.attach(logo)
+    try:
+        message.send()
+    except Exception:
+        logger.exception("Could not send welcome email to %s", user.email)
+        return False
+    return True
 
 
 def send_registration_confirmation(registration):

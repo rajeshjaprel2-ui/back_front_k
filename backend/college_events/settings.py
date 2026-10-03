@@ -115,6 +115,7 @@ EMAIL_BACKEND = (
     if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
     else "django.core.mail.backends.console.EmailBackend"
 )
+SITE_URL = os.environ.get("SITE_URL", "https://back-front-k.vercel.app")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "noreply@college.edu"
 
 LOGIN_URL = "login"

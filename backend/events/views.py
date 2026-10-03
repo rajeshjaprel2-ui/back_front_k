@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .emails import send_registration_confirmation
+from .emails import send_registration_confirmation, send_welcome_email
 from .forms import EventForm, LoginForm, StudentRegisterForm
 from .models import CATEGORY_ICONS, TEAM_SPORTS, Event, Registration, StudentProfile
 
@@ -68,7 +68,7 @@ CATEGORY_TAGLINES = {
 def home(request):
     open_events = Event.objects.filter(status__in=["upcoming", "ongoing"]).order_by("date", "time")
     events = list(open_events[:6])
-    spotlight = next((e for e in events if e.is_open), None)
+    spotlights = [e for e in events if e.is_open]
     open_counts = {}
     for category in open_events.values_list("category", flat=True):
         open_counts[category] = open_counts.get(category, 0) + 1
@@ -89,16 +89,19 @@ def home(request):
         "students": StudentProfile.objects.count(),
         "registrations": Registration.objects.count(),
     }
-    already = False
-    if spotlight and request.user.is_authenticated and not request.user.is_staff:
-        already = Registration.objects.filter(student=request.user, event=spotlight).exists()
+    registered_ids = set()
+    if spotlights and request.user.is_authenticated and not request.user.is_staff:
+        registered_ids = set(
+            Registration.objects.filter(student=request.user, event__in=spotlights).values_list("event_id", flat=True)
+        )
+    for event in spotlights:
+        event.user_registered = event.pk in registered_ids
     return render(
         request,
         "events/home.html",
         {
             "events": events,
-            "spotlight": spotlight,
-            "spotlight_registered": already,
+            "spotlights": spotlights,
             "categories": categories,
             "completed": completed,
             "stats": stats,
@@ -142,7 +145,12 @@ def student_register(request):
     if request.method == "POST" and form.is_valid():
         profile = form.save()
         login(request, profile.user)
-        messages.success(request, "Account created. You can now browse and register for events.")
+        if send_welcome_email(profile.user):
+            messages.success(
+                request, f"Account created. A welcome email has been sent to {profile.user.email}."
+            )
+        else:
+            messages.success(request, "Account created. You can now browse and register for events.")
         return redirect("student_dashboard")
     return render(request, "events/register.html", {"form": form})
 
